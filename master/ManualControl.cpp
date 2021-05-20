@@ -11,11 +11,8 @@ Filter velX_filter(INT_TIME);
 Filter velY_filter(INT_TIME);
 Filter velZ_filter(INT_TIME);
 
-ManualControl::ManualControl(PID* _velx, PID* _vely, PID* _velz)
+ManualControl::ManualControl()
 {
-    velx = _velx;
-    vely = _vely;
-    velz = _velz;
     velX_filter.setLowPassPara(0.10, 0.0);//ローパスフィルタのTと初期値を設定
     velY_filter.setLowPassPara(0.10, 0.0);//ローパスフィルタのTと初期値を設定
     velZ_filter.setLowPassPara(0.10, 0.0);//ローパスフィルタのTと初期値を設定
@@ -71,14 +68,4 @@ coords ManualControl::getRawVel(unsigned int JoyX, unsigned int JoyY, unsigned i
     refV.z = velZ_filter.LowPassFilter(rawV.z);
 
     return refV;
-}
-
-coords ManualControl::getRefVel(coords rawVel, coords robotVel, coords maxvel)
-{
-  coords refvel;
-  refvel.x = velx->getCmd(rawVel.x, robotVel.x, maxvel.x);
-  refvel.y = vely->getCmd(rawVel.y, robotVel.y, maxvel.y);
-  refvel.z = velz->getCmd(rawVel.z, robotVel.z, maxvel.z);
-
-  return refvel;
 }
