@@ -30,11 +30,12 @@ int DipSW::getDipState(){
     return dipNum;
 }
 
-PIDsetting::PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder)
+PIDsetting::PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder, int _setting)
 {
   pid = _pid;
   LCD = _LCD;
   encorder = _encorder;
+  setting = _setting;
   flag_lcd = true;
 }
 
@@ -80,7 +81,7 @@ void PIDsetting::init_variable()
   flag_lcd = true;
 }
 
-void PIDsetting::task(bool flag_500ms,bool up, bool down,char moji[],bool flag)
+void PIDsetting::task(bool flag_500ms,bool up, bool down,char moji[], int setting_num)
 {
   static int pid_setting_mode;
   static bool init_kp, init_ki, init_kd;
@@ -88,7 +89,7 @@ void PIDsetting::task(bool flag_500ms,bool up, bool down,char moji[],bool flag)
   Gain K;
   Gain setK;
   
-  if(flag)
+  if(setting_num == setting)
   {
     if(flag_lcd)
     { 
