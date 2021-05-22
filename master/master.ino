@@ -5,10 +5,10 @@
 #include "Platform.h"
 #include "lpms_me1Peach.h"
 #include "phaseCounterPeach.h"
-#include "controllerForDR.h"
+#include "ControllerForDR.h"
 #include "ManualControl.h"
 #include "PIDclass.h"
-#include "operater.h"
+#include "operator.h"
 #include "LCDclass.h"
 #include "Setting.h"
 #include "Button.h"
@@ -20,7 +20,7 @@ phaseCounter encX(1);
 phaseCounter encY(2);
 Controller Con(&SERIAL_XBEE);
 ManualControl ManuCon;
-operater DR;
+Operator DR;
 myLCDclass lcd(&SERIAL_LCD);
 
 Encorder enc;
@@ -34,12 +34,12 @@ PID PIDPosiX(0.5, 0.0, 0.0, INT_TIME);
 PID PIDPosiY(0.5, 0.0, 0.0, INT_TIME);
 PID PIDPosiZ(0.5, 0.0, 0.0, INT_TIME);
 
-PIDsetting settingVx(&PIDvelX, &lcd, &enc);
-PIDsetting settingVy(&PIDvelY, &lcd, &enc);
-PIDsetting settingVz(&PIDvelZ, &lcd, &enc);
-PIDsetting settingPx(&PIDPosiX, &lcd, &enc);
-PIDsetting settingPy(&PIDPosiY, &lcd, &enc);
-PIDsetting settingPz(&PIDPosiZ, &lcd, &enc);
+PIDsetting settingVx(&PIDvelX, &lcd, &enc, SETVEL_X);
+PIDsetting settingVy(&PIDvelY, &lcd, &enc, SETVEL_Y);
+PIDsetting settingVz(&PIDvelZ, &lcd, &enc, SETVEL_Z);
+PIDsetting settingPx(&PIDPosiX, &lcd, &enc, SETPOSI_X);
+PIDsetting settingPy(&PIDPosiY, &lcd, &enc, SETPOSI_Y);
+PIDsetting settingPz(&PIDPosiZ, &lcd, &enc, SETPOSI_Z);
 
 Button SW_RED(PIN_SW_RED);
 Button SW_BLACK(PIN_SW_BLACK);
@@ -50,7 +50,10 @@ Button SW_LEFT(PIN_SW_LEFT);
 
 coords position = {0.0, 0.0, radians(0.0)}; //ロボットの自己位置
 coords prePosition = position;
+coords refPosition = {0.0, 0.0, radians(0.0)}; //位置制御の目標位置
+coords dummyPosition = {0.0,0.0,radians(0.0)}; //ゲイン調整時の仮の自己位置
 coords velocity = {0.0, 0.0, radians(0.0)}; //ロボットの速度
+coords C_vel = {1.0, 1.0, 1.0}; //ロボットの移動速度の倍数
 bool flag_10ms = false, flag_500ms = false;
 int enc_count = 0, dipsw_state = 0; //各値を格納
 bool sw_red = false;
@@ -59,6 +62,7 @@ bool sw_up = false;
 bool sw_down = false;
 bool sw_right = false;
 bool sw_left = false;
+int setting_num = SET_MAXVELOMEGA;
 
 
 /* コントローラの受信と確認のLチカを行う関数 */
@@ -99,8 +103,37 @@ void timer_warikomi()
     position = mechanum.getPosi(encX_count, encY_count, Z_angle);
     velocity = getRobotVelocity(position);
 
-    coords refvel = ManuCon.getRawVel(Con.readJoy(LX), Con.readJoy(LY), Con.readJoy(RY));
-    mechanum.VelocityControl(refvel);
+    coords conVel = ManuCon.getRawVel(Con.readJoy(LX), Con.readJoy(LY), Con.readJoy(RY));
+    coords refVel;
+    bool flag_setting = SETPOSI_X <= setting_num && setting_num <= SETPOSI_Z;
+    dummyPosition = getDummyPosition(flag_setting);
+    if(dipsw.getBool(DIP3,ON) || dipsw.getBool(DIP4,ON))
+    {
+        coords rawVel;
+        if(flag_setting) //ゲイン調整が位置PID制御の場合
+        {
+            rawVel.x = PIDPosiX.getCmd(refPosition.x, dummyPosition.x, C_vel.x*JOY_MAXVEL);
+            rawVel.y = PIDPosiY.getCmd(refPosition.y, dummyPosition.y, C_vel.y*JOY_MAXVEL);
+            rawVel.z = PIDPosiZ.getCmd(refPosition.z, dummyPosition.z, C_vel.z*JOY_MAXANGVEL);
+        }
+        else
+        {
+            rawVel = conVel; //コントローラの値が速度制御の目標速度
+        }
+        //速度PID制御を行う
+        refVel.x = PIDvelX.getCmd(C_vel.x*rawVel.x, velocity.x, C_vel.x*(JOY_MAXVEL*1.1));
+        refVel.y = PIDvelY.getCmd(C_vel.y*rawVel.y, velocity.y, C_vel.y*(JOY_MAXVEL*1.1));
+        refVel.z = PIDvelZ.getCmd(C_vel.z*rawVel.z, velocity.z, C_vel.z*(JOY_MAXANGVEL*1.1));
+    }
+    else
+    {
+        //コントローラの値をそのまま使用
+        refVel.x = C_vel.x*conVel.x;
+        refVel.y = C_vel.y*conVel.y;
+        refVel.z = C_vel.z*conVel.z; 
+    }
+
+    mechanum.VelocityControl(refVel);
 }
 
 void setup()
@@ -111,9 +144,9 @@ void setup()
     lcd.color_red();
     analogWrite(PIN_LED_RED, 255);
     lcd.write_line("    Setting Time    ", LINE_1);
-    lcd.write_line("         ||         ", LINE_2);
-    lcd.write_line("         ||         ", LINE_3);
-    lcd.write_line("   PUSH BUTTON_PS   ", LINE_4);
+    lcd.write_line("        |  |        ", LINE_2);
+    lcd.write_line("        |  |        ", LINE_3);
+    lcd.write_line("===PUSH BUTTON_PS===", LINE_4);
     Con.begin(115200);
 
     //PSボタンが押されるまで待機（ボード上のスイッチでも可）
@@ -158,9 +191,13 @@ void loop()
         sw_up = SW_UP.button_fall();
         sw_down = SW_DOWN.button_fall();
         sw_right = SW_LEFT.button_fall();
+    
+        pid_gain_setting();
 
         flag_10ms = false;
     }
+    
+    
 
     if (flag_500ms)
     {
@@ -184,8 +221,6 @@ void loop()
 
         flag_500ms = false;
     }
-    
-    pid_gain_setting();
 }
 
 /*　PID制御のゲイン調整　*/
@@ -194,16 +229,15 @@ void pid_gain_setting()
   if(dipsw.getBool(DIP4, ON)) //DIP4がONの場合
   {
     digitalWrite(PIN_LED_ENC, HIGH);
-    static int pid_setting_num = 1;
     if(sw_right)
     {
-      pid_setting_num++;
-      if(7 <= pid_setting_num) pid_setting_num = 1;
+      setting_num++;
+      if(SETTINGNUM + 1 <= setting_num) setting_num = 1;
     }
     else if(sw_left)
     {
-      pid_setting_num--;
-      if(pid_setting_num <= 0) pid_setting_num = 6;
+      setting_num--;
+      if(setting_num <= 0) setting_num = SETTINGNUM;
     }
 
     char velx_moji[] = "velocity.X PID";
@@ -212,12 +246,12 @@ void pid_gain_setting()
     char posix_moji[] = "position.X PID";
     char posiy_moji[] = "position.Y PID";
     char posiz_moji[] = "position.Z PID";
-    settingVx.task(flag_500ms, sw_up, sw_down, velx_moji, pid_setting_num == 1);
-    settingVy.task(flag_500ms, sw_up, sw_down, vely_moji, pid_setting_num == 2);
-    settingVz.task(flag_500ms, sw_up, sw_down, velz_moji, pid_setting_num == 3);
-    settingPx.task(flag_500ms, sw_up, sw_down, posix_moji, pid_setting_num == 4);
-    settingPy.task(flag_500ms, sw_up, sw_down, posiy_moji, pid_setting_num == 5);
-    settingPz.task(flag_500ms, sw_up, sw_down, posiz_moji, pid_setting_num == 6); 
+    settingVx.task(flag_500ms, sw_up, sw_down, velx_moji, setting_num);
+    settingVy.task(flag_500ms, sw_up, sw_down, vely_moji, setting_num);
+    settingVz.task(flag_500ms, sw_up, sw_down, velz_moji, setting_num);
+    settingPx.task(flag_500ms, sw_up, sw_down, posix_moji, setting_num);
+    settingPy.task(flag_500ms, sw_up, sw_down, posiy_moji, setting_num);
+    settingPz.task(flag_500ms, sw_up, sw_down, posiz_moji, setting_num); 
   }
   else
   {
@@ -229,4 +263,23 @@ void pid_gain_setting()
     settingPy.init_variable();
     settingPz.init_variable();
   }
+}
+
+/* 位置PID制御のゲイン調整を開始したら，その場所を仮の原点とする関数（Z軸は変更しない） */
+coords getDummyPosition(bool positionSetting)
+{
+    static coords positionOffset = {0.0, 0.0, radians(0.0)};
+    if(!positionSetting)
+    {
+        positionOffset = position;
+        return position;
+    }
+    else
+    {
+        coords DummyPosition;
+        DummyPosition.x = position.x - positionOffset.x;
+        DummyPosition.y = position.y - positionOffset.y;
+        DummyPosition.z = position.z;
+        return DummyPosition;
+    }
 }
