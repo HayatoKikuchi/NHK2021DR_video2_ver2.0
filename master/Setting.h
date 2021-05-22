@@ -13,6 +13,17 @@
 #define ON 1
 #define OFF 2
 
+#define SET_MAXVELOMEGA 1
+#define SETVEL_X 2
+#define SETVEL_Y 3
+#define SETVEL_Z 4
+#define SETPOSI_X 5
+#define SETPOSI_Y 6
+#define SETPOSI_Z 7
+
+#define SETTINGNUM 7
+
+
 class DipSW{
   public:
   DipSW();
