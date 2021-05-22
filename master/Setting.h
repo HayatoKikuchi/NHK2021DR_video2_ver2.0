@@ -78,7 +78,7 @@ class Encorder{
 class PIDsetting
 {
 public:
-    PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder);
+    PIDsetting(PID *_pid, myLCDclass *_LCD, Encorder *_encorder, int _setting);
 
     /* PID制御のゲイン調整に必要な変数を初期化 */
     void init_variable();
@@ -92,13 +92,14 @@ public:
     * @param moji LCDに表示させる文字
     * @param flag settingを行うか否か
     */
-    void task(bool flag_display,bool up, bool down,char moji[],bool flag);
+    void task(bool flag_display,bool up, bool down,char moji[],int setting_num);
 
 private:
     PID *pid;
     myLCDclass *LCD;
     Encorder *encorder;
     bool flag_lcd;
+    int setting;
 };
 
 #endif
