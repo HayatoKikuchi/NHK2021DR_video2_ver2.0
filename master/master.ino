@@ -34,6 +34,7 @@ PID PIDPosiX(0.5, 0.0, 0.0, INT_TIME);
 PID PIDPosiY(0.5, 0.0, 0.0, INT_TIME);
 PID PIDPosiZ(0.5, 0.0, 0.0, INT_TIME);
 
+/* ボード上のボタンとエンコーダでPID制御のゲイン調整を行いLCDに値を表示させるクラス */
 PIDsetting settingVx(&PIDvelX, &lcd, &enc, SETVEL_X);
 PIDsetting settingVy(&PIDvelY, &lcd, &enc, SETVEL_Y);
 PIDsetting settingVz(&PIDvelZ, &lcd, &enc, SETVEL_Z);
@@ -54,6 +55,7 @@ coords refPosition = {0.0, 0.0, radians(0.0)}; //位置制御の目標位置
 coords dummyPosition = {0.0,0.0,radians(0.0)}; //ゲイン調整時の仮の自己位置
 coords velocity = {0.0, 0.0, radians(0.0)}; //ロボットの速度
 coords C_vel = {1.0, 1.0, 1.0}; //ロボットの移動速度の倍数
+
 bool flag_10ms = false, flag_500ms = false;
 int enc_count = 0, dipsw_state = 0; //各値を格納
 bool sw_red = false;
@@ -100,13 +102,13 @@ void timer_warikomi()
     int encX_count = encX.getCount();
     int encY_count = encY.getCount();
     double Z_angle = lpms.get_z_angle();
-    position = mechanum.getPosi(encX_count, encY_count, Z_angle);
-    velocity = getRobotVelocity(position);
+    position = mechanum.getPosi(encX_count, encY_count, Z_angle); //ロボットの自己位置を更新
+    velocity = getRobotVelocity(position); //ロボットの移動速度を更新
 
     coords conVel = ManuCon.getRawVel(Con.readJoy(LX), Con.readJoy(LY), Con.readJoy(RY));
-    coords refVel;
-    bool flag_setting = SETPOSI_X <= setting_num && setting_num <= SETPOSI_Z;
-    dummyPosition = getDummyPosition(flag_setting);
+    coords refVel; //最終的な足回りの目標速度
+    bool flag_setting = SETPOSI_X <= setting_num && setting_num <= SETPOSI_Z; //位置PIDのゲイン調整をしている場合はtrue
+    dummyPosition = getDummyPosition(flag_setting); //位置PID制御のゲイン調整を開始したら仮の原点を得る
     if(dipsw.getBool(DIP3,ON) || dipsw.getBool(DIP4,ON))
     {
         coords rawVel;
@@ -133,13 +135,15 @@ void timer_warikomi()
         refVel.z = C_vel.z*conVel.z; 
     }
 
-    mechanum.VelocityControl(refVel);
+    mechanum.VelocityControl(refVel); //RoboClawへ速度指令を送る
 }
 
 void setup()
 {   
     SERIAL_PC.begin(115200);
     SERIAL_LCD.begin(115200);
+    Con.begin(115200);
+    
     lcd.clear_display();
     lcd.color_red();
     analogWrite(PIN_LED_RED, 255);
@@ -147,13 +151,13 @@ void setup()
     lcd.write_line("        |  |        ", LINE_2);
     lcd.write_line("        |  |        ", LINE_3);
     lcd.write_line("===PUSH BUTTON_PS===", LINE_4);
-    Con.begin(115200);
 
     //PSボタンが押されるまで待機（ボード上のスイッチでも可）
     bool ready_to_start = false; 
     while (!ready_to_start)
     {
         controller_update();
+        /* この間にロボットの位置合わせなどを行う */
         if(Con.readButton(BUTTON_PS,PUSHED) || userSW.button_fall())
         {
             mechanum.platformInit(position);
@@ -180,7 +184,7 @@ void setup()
 
 void loop()
 {
-    enc_count = enc.getEncCount();
+    enc_count = enc.getEncCount(); //エンコーダのカウント値を更新（10msでは読み飛ばしが起こった）
     if(flag_10ms)
     {
         controller_update();
