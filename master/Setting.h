@@ -71,7 +71,7 @@ class Encorder{
   int enc_count;
   double count;
   int encA, pre_encA, encB, pre_encB;
-  double fluctuation;
+  double fluctuation;//1カウントの増分
 };
 
 

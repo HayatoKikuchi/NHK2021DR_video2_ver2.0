@@ -49,6 +49,7 @@ bool DipSW::getBool(int one_dip, int on_or_off)
 
     default: out = false; break;
     }
+    
     return out;
 }
 
