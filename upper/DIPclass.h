@@ -12,7 +12,8 @@
 #define ON 1
 #define OFF 2
 
-class DipSW{
+class DipSW
+{
   public:
   DipSW();
 
