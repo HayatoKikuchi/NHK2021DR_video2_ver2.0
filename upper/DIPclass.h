@@ -21,7 +21,7 @@ class DipSW
   int getDipState();
 
   /*
-  * 指定されたDipSwotchがONかOFFを指定し状態の真偽を返す
+  * 指定されたDipSwitchがONかOFFを指定し状態の真偽を返す
   *
   * @param one_dip DIP1~DIP4を選択．マクロ名は自分で変更可
   * @param on_or_off DipSwitchがONかOFFを選択
