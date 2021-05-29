@@ -12,9 +12,10 @@ Button userSW(PIN_SW);
 bool flag_10ms = false;
 bool flag_expand = false;
 int led_emitting = 0;
+int dipState = 0;
 
-/* ボード上の4つのLEDを光らせる関数 */
-void BoardLED(int emitting_num)
+/* マイコンボード上の4つのLEDを光らせる関数 */
+void UserLED(int emitting_num)
 {
     digitalWrite(PIN_LED0, emitting_num & 0x01);
     digitalWrite(PIN_LED1, emitting_num & 0x02);
@@ -22,10 +23,22 @@ void BoardLED(int emitting_num)
     digitalWrite(PIN_LED3, emitting_num & 0x08);
 }
 
+/* 基板上の4つのLEDを光らせる関数 */
+void BoardLED(int emitting_num)
+{
+    digitalWrite(PIN_LED_1, emitting_num & 0x01);
+    digitalWrite(PIN_LED_2, emitting_num & 0x02);
+    digitalWrite(PIN_LED_3, emitting_num & 0x04);
+    digitalWrite(PIN_LED_4, emitting_num & 0x08);
+}
+
 void timer_warikomi()
 {
     flag_10ms = true;
 
+    dipState = dip.getDipState();
+
+    /* 展開の処理 */
     if(flag_expand)
     {
         static int expand_seconds = 0;
@@ -56,7 +69,7 @@ void setup()
 
     pinMode(PIN_EXPAND, OUTPUT);
 
-    BoardLED(LED_OLL_HIGH);
+    UserLED(LED_OLL_HIGH);
     
     delay(1000);
 
@@ -80,12 +93,12 @@ void setup()
             led_counts = 0;
         }
 
-        BoardLED(emitting);
+        UserLED(emitting);
         
         delay(INT_TIME_MS);
     }
 
-    BoardLED(LED_OLL_HIGH);
+    UserLED(LED_OLL_HIGH);
 
     delay(1000);
     
@@ -104,7 +117,8 @@ void loop()
         digitalWrite(PIN_EXPAND, flag_expand);
 
 
-        BoardLED(led_emitting);
+        UserLED(led_emitting);
+        BoardLED(dipState);
 
         flag_10ms = false;
     }
