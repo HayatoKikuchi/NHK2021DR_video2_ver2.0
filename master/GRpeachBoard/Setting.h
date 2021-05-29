@@ -32,7 +32,7 @@ class DipSW{
   int getDipState();
 
   /*
-  * 指定されたDipSwotchがONかOFFを指定し状態の真偽を返す
+  * 指定されたDipSwitchがONかOFFを指定し状態の真偽を返す
   *
   * @param one_dip DIP1~DIP4を選択．マクロ名は自分で変更可
   * @param on_or_off DipSwitchがONかOFFを選択
@@ -92,8 +92,7 @@ public:
     * @param flag_display LCDの表示を更新する周期（フラグ処理）
     * @param up オンボードの上ボタン
     * @param down オンボードの下ボタン
-    * @param moji LCDに表示させる文字
-    * @param flag settingを行うか否か
+    * @param setting_num 定義された番号
     */
     void task(bool flag_display,bool up, bool down,int setting_num);
 
