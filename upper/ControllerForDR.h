@@ -2,7 +2,6 @@
 #define CONTROLLERFORDR_H
 
 #include <Arduino.h>
-#include "define.h"
 
 #define BUTTON_SIKAKU 0x0001
 #define BUTTON_SANKAKU 0x0002

@@ -1,5 +1,4 @@
 #include "ControllerForDR.h"
-#include "define.h"
 
 Controller::Controller(HardwareSerial *_Ser)
 {
