@@ -10,18 +10,38 @@ Controller Con(&SERIAL_CON);
 Button userSW(PIN_SW);
 
 bool flag_10ms = false;
+bool flag_expand = false;
 int led_emitting = 0;
+
+/* ボード上の4つのLEDを光らせる関数 */
+void BoardLED(int emitting_num)
+{
+    digitalWrite(PIN_LED0, emitting_num & 0x01);
+    digitalWrite(PIN_LED1, emitting_num & 0x02);
+    digitalWrite(PIN_LED2, emitting_num & 0x04);
+    digitalWrite(PIN_LED3, emitting_num & 0x08);
+}
 
 void timer_warikomi()
 {
     flag_10ms = true;
 
+    if(flag_expand)
+    {
+        static int expand_seconds = 0;
+        if(expand_seconds++ == 100)
+        {
+            expand_seconds = 0;
+            flag_expand = false;
+        }
+    }
+
+    /* ボード上のLEDを奇麗に光らせるための処理 */
     static int led_time_count = 0;
     if(led_time_count++ == 100)
     {
-        led_emitting++;
         led_time_count = 0;
-        if(led_emitting == 16) led_emitting = 0;
+        if(led_emitting++ == 16) led_emitting = 0;
     }
 }
 
@@ -34,10 +54,9 @@ void setup()
     pinMode(PIN_LED2, OUTPUT);
     pinMode(PIN_LED3, OUTPUT);
 
-    digitalWrite(PIN_LED0, HIGH);
-    digitalWrite(PIN_LED1, HIGH);
-    digitalWrite(PIN_LED2, HIGH);
-    digitalWrite(PIN_LED3, HIGH);
+    pinMode(PIN_EXPAND, OUTPUT);
+
+    BoardLED(LED_OLL_HIGH);
     
     delay(1000);
 
@@ -61,18 +80,12 @@ void setup()
             led_counts = 0;
         }
 
-        digitalWrite(PIN_LED0, emitting);
-        digitalWrite(PIN_LED1, emitting);
-        digitalWrite(PIN_LED2, emitting);
-        digitalWrite(PIN_LED3, emitting);
+        BoardLED(emitting);
         
         delay(INT_TIME_MS);
     }
 
-    digitalWrite(PIN_LED0, HIGH);
-    digitalWrite(PIN_LED1, HIGH);
-    digitalWrite(PIN_LED2, HIGH);
-    digitalWrite(PIN_LED3, HIGH);
+    BoardLED(LED_OLL_HIGH);
 
     delay(1000);
     
@@ -82,13 +95,18 @@ void setup()
 
 void loop()
 {
+
     if(flag_10ms)
     {
+        Con.update();
+
+        if(Con.readButton(BUTTON_SANKAKU, PUSHED)) flag_expand = true;
+        digitalWrite(PIN_EXPAND, flag_expand);
+
+
+        BoardLED(led_emitting);
+
         flag_10ms = false;
     }
 
-    digitalWrite(PIN_LED0, led_emitting & 0x01);
-    digitalWrite(PIN_LED1, led_emitting & 0x02);
-    digitalWrite(PIN_LED2, led_emitting & 0x04);
-    digitalWrite(PIN_LED3, led_emitting & 0x08);
 }
