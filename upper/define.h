@@ -25,6 +25,11 @@ struct coords
 /* 出力ピンの定義 */
 #define PIN_EXPAND 40
 
+#define PIN_LED_1 30 //ダミー
+#define PIN_LED_2 31 //ダミー
+#define PIN_LED_3 32 //ダミー
+#define PIN_LED_4 33 //ダミー
+
 /* 出力の定義 */
 #define LED_OLL_LOW  0x00
 #define LED_OLL_HIGH 0x0F
@@ -32,5 +37,9 @@ struct coords
 /* 制御（処理）に関する定義 */
 #define INT_TIME ( 0.01 )
 #define INT_TIME_MS ( INT_TIME * 1000 )
+
+/* モータドライバに関する定義 */
+#define ADR_MD1 128
+#define ADR_MD2 129
 
 #endif
