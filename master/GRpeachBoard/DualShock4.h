@@ -1,5 +1,5 @@
-#ifndef CONTROLLERFORDR_H
-#define CONTROLLERFORDR_H
+#ifndef DUALSHOCK4_H
+#define DUALSHOCK4_H
 
 #include <Arduino.h>
 #include "define.h"
