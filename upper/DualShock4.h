@@ -1,5 +1,5 @@
-#ifndef CONTROLLERFORDR_H
-#define CONTROLLERFORDR_H
+#ifndef DUALSHOCK4_H
+#define DUALSHOCK4_H
 
 #include <Arduino.h>
 
@@ -36,10 +36,10 @@
 #define RX 3
 #define RY 4
 
-class Controller
+class DualSchok4
 {
 public:
-    Controller(HardwareSerial *_Ser_con);
+    DualSchok4(HardwareSerial *_Ser_con);
 
     void begin(int baudrate);
 
