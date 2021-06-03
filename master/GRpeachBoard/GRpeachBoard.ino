@@ -5,7 +5,7 @@
 #include "Platform.h"
 #include "lpms_me1Peach.h"
 #include "phaseCounterPeach.h"
-#include "ControllerForDR.h"
+#include "DualShock4.h"
 #include "ManualControl.h"
 #include "PIDclass.h"
 #include "operator.h"
@@ -21,9 +21,9 @@ Platform mechanum;
 lpms_me1 lpms(&SERIAL_LPMSME1);
 phaseCounter encX(1);
 phaseCounter encY(2);
-Controller Con(&SERIAL_XBEE);
+DualSchok4 Con(&SERIAL_XBEE);
 ManualControl ManuCon;
-Operator DR;
+Operator DR(&SERIAL_UPPER);
 myLCDclass lcd(&SERIAL_LCD);
 
 Encorder enc;
@@ -69,6 +69,8 @@ bool sw_down = false;
 bool sw_right = false;
 bool sw_left = false;
 int setting_num = SET_MAXVELOMEGA;
+
+uint8_t upper_order = 0;
 
 
 /* コントローラの受信と確認のLチカを行う関数 */
@@ -146,6 +148,7 @@ void setup()
 {   
     SERIAL_PC.begin(115200);
     SERIAL_LCD.begin(115200);
+    SERIAL_UPPER.begin(115200);
     Con.begin(115200);
     
     lcd.clear_display();
@@ -214,6 +217,7 @@ void loop()
     if(flag_10ms)
     {
         controller_update();
+        DR.updateUpperCmd(&upper_order);
 
         /* ボタンの処理（10ms周期でチャタリング対策） */
         dipsw_state = dipsw.getDipState();

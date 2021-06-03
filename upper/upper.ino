@@ -2,17 +2,22 @@
 #include <MsTimer2.h>
 #include "define.h"
 #include "DIPclass.h"
-#include "ControllerForDR.h"
+#include "DualShock4.h"
 #include "Button.h"
+#include "master.h"
 
 DipSW dip;
-Controller Con(&SERIAL_CON);
 Button userSW(PIN_SW);
+DualSchok4 Con(&SERIAL_CON);
+Master master(&SERIAL_MASTER);
 
 bool flag_10ms = false;
 bool flag_expand = false;
 int led_emitting = 0;
 int dipState = 0;
+
+coords position = {0.0, 0.0, radians(0.0)};
+uint8_t order = 0;
 
 /* マイコンボード上の4つのLEDを光らせる関数 */
 void UserLED(int emitting_num)
@@ -74,6 +79,7 @@ void setup()
     delay(1000);
 
     SERIAL_PC.begin(115200);
+    SERIAL_MASTER.begin(115200);
     Con.begin(115200);
 
     bool ready_to_start = false;
@@ -112,10 +118,10 @@ void loop()
     if(flag_10ms)
     {
         Con.update();
+        master.updateMasterCmd(&order, &position);
 
         if(Con.readButton(BUTTON_SANKAKU, PUSHED)) flag_expand = true;
         digitalWrite(PIN_EXPAND, flag_expand);
-
 
         UserLED(led_emitting);
         BoardLED(dipState);
