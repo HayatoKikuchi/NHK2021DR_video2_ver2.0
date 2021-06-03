@@ -37,16 +37,16 @@
 #define RX 3
 #define RY 4
 
-class Controller
+class DualSchok4
 {
 public:
-    Controller(HardwareSerial *_Ser_con);
+    DualSchok4(HardwareSerial *_Ser_con);
 
     void begin(int baudrate);
 
     bool update();
 
-    bool readButton(unsigned int button,int status);
+    bool readButton(unsigned int button,int state);
 
     unsigned int getButtonState() const;
     unsigned int getpreButtonState() const;

@@ -1,7 +1,7 @@
-#include "ControllerForDR.h"
+#include "DualShock4.h"
 #include "define.h"
 
-Controller::Controller(HardwareSerial *_Ser)
+DualSchok4::DualSchok4(HardwareSerial *_Ser)
 {
     Ser = _Ser;
 
@@ -12,12 +12,12 @@ Controller::Controller(HardwareSerial *_Ser)
     RJoyY = 127;
 }
 
-void Controller::begin(int baudrate)
+void DualSchok4::begin(int baudrate)
 {
     Ser->begin(baudrate);
 }
 
-bool Controller::update()
+bool DualSchok4::update()
 {
   unsigned int checksum;
   preButtonState = ButtonState;
@@ -68,10 +68,14 @@ bool Controller::update()
       recv_msgs[recv_num++] = c;
     }
   }
+
+  if(preButtonState != ButtonState) buttonChanged = true;
+  else buttonChanged = false;
+
   return false;
 }
  
-bool Controller::readButton(unsigned int button,int status)
+bool DualSchok4::readButton(unsigned int button,int state)
 {
   int8_t num = 0;
   if(getButtonState() & button)  num += 2;
@@ -80,22 +84,22 @@ bool Controller::readButton(unsigned int button,int status)
   else return false;
 }
 
-unsigned int Controller::getButtonState() const
+unsigned int DualSchok4::getButtonState() const
 {
     return ButtonState;
 }
-unsigned int Controller::getpreButtonState() const
+unsigned int DualSchok4::getpreButtonState() const
 {
     return preButtonState;
 }
 
 /**コントローラの入力に変化があったらtrueを返す**/
-bool Controller::getButtonChanged() const
+bool DualSchok4::getButtonChanged() const
 {
     return buttonChanged;
 }
 
-unsigned int Controller::readJoy(int joy)
+unsigned int DualSchok4::readJoy(int joy)
 {
   unsigned int out;
   switch (joy)
