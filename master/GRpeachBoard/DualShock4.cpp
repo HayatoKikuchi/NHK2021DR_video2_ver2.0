@@ -80,7 +80,7 @@ bool DualSchok4::readButton(unsigned int button,int state)
   int8_t num = 0;
   if(getButtonState() & button)  num += 2;
   if(getpreButtonState() & button) num -= 1;
-  if(num == status) return true;
+  if(num == state) return true;
   else return false;
 }
 

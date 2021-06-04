@@ -45,7 +45,7 @@ public:
 
     bool update();
 
-    bool readButton(unsigned int button,int status);
+    bool readButton(unsigned int button,int state);
 
     unsigned int getButtonState() const;
     unsigned int getpreButtonState() const;
