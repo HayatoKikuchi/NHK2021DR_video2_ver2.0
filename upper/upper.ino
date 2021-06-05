@@ -32,20 +32,20 @@ uint8_t order = 0;
 // @param emitting_num int型下位4ビットで制御
 void UserLED(int emitting_num)
 {
-    digitalWrite(PIN_LED0, emitting_num & 0x01);
-    digitalWrite(PIN_LED1, emitting_num & 0x02);
-    digitalWrite(PIN_LED2, emitting_num & 0x04);
-    digitalWrite(PIN_LED3, emitting_num & 0x08);
+    digitalWrite(PIN_LED0, emitting_num & 0b0001);
+    digitalWrite(PIN_LED1, emitting_num & 0b0010);
+    digitalWrite(PIN_LED2, emitting_num & 0b0100);
+    digitalWrite(PIN_LED3, emitting_num & 0b1000);
 }
 
 /* 基板上の4つのLEDを光らせる関数 */
 // @param emitting_num int型下位4ビットで制御
 void BoardLED(int emitting_num)
 {
-    digitalWrite(PIN_LED_1, emitting_num & 0x01);
-    digitalWrite(PIN_LED_2, emitting_num & 0x02);
-    digitalWrite(PIN_LED_3, emitting_num & 0x04);
-    digitalWrite(PIN_LED_4, emitting_num & 0x08);
+    digitalWrite(PIN_LED_1, emitting_num & 0b0001);
+    digitalWrite(PIN_LED_2, emitting_num & 0b0010);
+    digitalWrite(PIN_LED_3, emitting_num & 0b0100);
+    digitalWrite(PIN_LED_4, emitting_num & 0b1000);
 }
 
 /* RoboClawへの指令値に変換する関数（位置，速度，加速度に対応） */
