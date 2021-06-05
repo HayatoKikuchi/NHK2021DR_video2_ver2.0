@@ -79,7 +79,7 @@ void Operator::sendUpperCmd()
   
 }
 
-void Operator::updateUpperCmd(uint8_t *status)
+void Operator::updateUpperCmd(uint8_t *cmd)
 {
 
   while (upper->available())
@@ -96,7 +96,7 @@ void Operator::updateUpperCmd(uint8_t *status)
         }
       }
 
-      *status = reciveData[0];
+      *cmd = reciveData[0];
 
       loop_num = 0;
     }
