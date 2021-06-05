@@ -19,7 +19,7 @@ public:
     void RGB_led(int period); //フルカラーLEDを奇麗に光らせる
 
     void sendUpperCmd();
-    void updateUpperCmd(uint8_t *status);
+    void updateUpperCmd(uint8_t *cmd);
 
     uint8_t sendData[7];
     uint8_t reciveData[4];
