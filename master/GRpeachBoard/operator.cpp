@@ -5,6 +5,7 @@ Operator::Operator(HardwareSerial *_upper)
   upper = _upper;
   Operator::setup();
   Operator::allOutputLow();
+  Operator::init_upper_cmd();
 }
 
 void Operator::setup()
@@ -62,24 +63,48 @@ void Operator::allOutputLow()
   digitalWrite(PIN_LED_ENC, LOW);
 }
 
-void Operator::sendUpperCmd()
+void Operator::init_upper_cmd()
 {
-  sendData[0] = 1; //ダミー
-  sendData[1] = 2; //ダミー
-  sendData[2] = 3; //ダミー
-  sendData[3] = 4; //ダミー
-  sendData[4] = 5; //ダミー
-  sendData[5] = (sendData[0] ^ sendData[1] ^ sendData[2] ^ sendData[3] ^ sendData[4]);
-  sendData[6] = END_BYTE;
-
-  for (int i = 0; i < 7; i++)
-  {
-    upper->write(sendData[i]);
-  }
-  
+  Operator::upper_cmd = Operator::pre_upper_cmd = MASTER_ON;
 }
 
-void Operator::updateUpperCmd(uint8_t *cmd)
+void Operator::add_upper_cmd(unsigned int addNum)
+{
+  Operator::upper_cmd |= addNum;
+}
+
+void Operator::sub_upper_cmd(unsigned int subNum)
+{
+  if(Operator::upper_cmd & subNum) Operator::upper_cmd -= subNum;
+}
+
+void Operator::sendUpperCmd(double refAngle, double refOmega)
+{
+  pre_upper_cmd = Operator::upper_cmd;
+
+  if(refAngle < 0) Operator::add_upper_cmd(TABLE_POSI_NEGATIVE); //変数の正負を情報を格納
+  if(refOmega < 0) Operator::add_upper_cmd(TABLE_OMEGA_NEGATIVE); //変数の正負の情報を格納
+
+  double sendAngle, sendOmega;
+  sendAngle = fabs((unsigned int)refAngle)*10.0; // 1/10の位まで
+  sendOmega = fabs((unsigned int)refOmega)*10.0; // 1/10の位まで
+
+  sendData[0] = Operator::upper_cmd;
+  sendData[1] = mapping((int)sendAngle, 0, 600, 0, 255); //0~600の値を0~255の値に再マップ
+  sendData[2] = mapping((int)sendOmega, 0, 600, 0, 255); //0~600の値を0~255の値に再マップ
+  sendData[3] = 0; //reserved
+  sendData[5] = END_BYTE;
+
+  if(Operator::pre_upper_cmd != Operator::upper_cmd) //コマンドが変更しときにだけ送信
+  {
+    for (int i = 0; i < SENDDATANUM; i++)
+    {
+      upper->write(sendData[i]);
+    }
+  }
+}
+
+void Operator::updateUpperCmd(unsigned int *cmd)
 {
 
   while (upper->available())
@@ -107,4 +132,10 @@ void Operator::updateUpperCmd(uint8_t *cmd)
     }
   }
   
+}
+
+
+int Operator::mapping(int value, int fromLow, int fromHigh, int toLow, int toHigh)
+{
+    return value / (fromHigh - fromLow) * (toHigh - toLow);
 }

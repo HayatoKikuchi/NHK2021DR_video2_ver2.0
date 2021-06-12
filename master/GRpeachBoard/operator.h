@@ -4,6 +4,24 @@
 #include <Arduino.h>
 #include "define.h"
 
+#define SENDDATANUM 6
+#define RECVDATANUM 4
+
+/* 受信で使用 */
+#define UPPER_ON 0x01
+#define UPPER_IS_OK 0x02
+#define HOLD_HANDLE 0x04
+
+/* 送信で使用 */
+#define MASTER_ON 0x01
+#define MASTER_IS_OK 0x02
+#define TABLE_POSITION 0x04
+#define EXPAND 0x08
+#define SENDING_TABLE_CMD 0x10
+#define TABLE_POSI_NEGATIVE 0x20
+#define TABLE_OMEGA_NEGATIVE 0x40
+#define HANDLE 0x80
+
 #define END_BYTE 0xB4
 
 class Operator
@@ -18,17 +36,22 @@ public:
     void LEDblink(byte pin, int times, int interval); //LEDを点滅させる
     void RGB_led(int period); //フルカラーLEDを奇麗に光らせる
 
-    void sendUpperCmd();
-    void updateUpperCmd(uint8_t *cmd);
-
-    uint8_t sendData[7];
-    uint8_t reciveData[4];
+    void init_upper_cmd(void);
+    void add_upper_cmd(unsigned int addNum);
+    void sub_upper_cmd(unsigned int subNum);
+    void sendUpperCmd(double refAngle = 0.0, double refOmega = 0.0);
+    void updateUpperCmd(unsigned int *cmd);
 
 private:
     HardwareSerial *upper;
+    
+    int mapping(int value, int fromLow, int fromHigh, int toLow, int toHigh);
 
-    uint8_t recv_num[4];
+    unsigned int recv_num[4];
+    unsigned int sendData[7];
+    unsigned int reciveData[4];
 
+    unsigned int upper_cmd, pre_upper_cmd;
 };
 
 #endif
