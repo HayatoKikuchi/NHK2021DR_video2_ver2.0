@@ -70,8 +70,9 @@ bool sw_right = false;
 bool sw_left = false;
 int setting_num = SET_MAXVELOMEGA;
 
-uint8_t upper_order = 0;
-
+/* 上半身への送信 */
+unsigned int upper_cmd = 0;
+double tableAngle = 0, tableOmega = 0; //値は[度]
 
 /* コントローラの受信と確認のLチカを行う関数 */
 void controller_update()
@@ -150,10 +151,29 @@ void setup()
     SERIAL_LCD.begin(115200);
     SERIAL_UPPER.begin(115200);
     Con.begin(115200);
-    
+
+    DR.sendUpperCmd(); //上半身に受信準備ができたことを知らせる
+
     lcd.clear_display();
     lcd.color_red();
     analogWrite(PIN_LED_RED, 255);
+    lcd.write_line("      Waiting       ", LINE_1);
+    lcd.write_line("      For           ", LINE_2);
+    lcd.write_line("      GR-SAKURA     ", LINE_3);
+
+    bool ready_to_start = false; 
+    while (!ready_to_start)
+    {
+        DR.updateUpperCmd(&upper_cmd);
+        dipsw_state = dipsw.getDipState();
+        if(upper_cmd & UPPER_IS_OK) ready_to_start = true; //上半身の初期化が完了したら次に進む
+
+        if(SW_RED.button_fall() && dipsw.getBool(DIP1, OFF)) ready_to_start = true; //DIP1がOFFのときは上半身の制御をしない
+        
+        delay(10);
+    }
+    
+    lcd.clear_display();
     lcd.write_line("    Setting Time    ", LINE_1);
     lcd.write_line("        |  |        ", LINE_2);
     lcd.write_line("        |  |        ", LINE_3);
@@ -179,7 +199,7 @@ void setup()
     //track.initSettings();
 
     //PSボタンが押されるまで待機（ボード上のスイッチでも可）
-    bool ready_to_start = false; 
+    ready_to_start = false; 
     while (!ready_to_start)
     {
         controller_update();
@@ -204,6 +224,10 @@ void setup()
 
         delay(10);
     }
+
+    /* 上半身にsetupが完了した事を伝える */
+    DR.add_upper_cmd(MASTER_IS_OK);
+    DR.sendUpperCmd();
     
     delay(1000);
 
@@ -217,7 +241,7 @@ void loop()
     if(flag_10ms)
     {
         controller_update();
-        DR.updateUpperCmd(&upper_order);
+        DR.updateUpperCmd(&upper_cmd);
 
         /* ボタンの処理（10ms周期でチャタリング対策） */
         dipsw_state = dipsw.getDipState();
@@ -226,7 +250,34 @@ void loop()
         sw_up = SW_UP.button_fall();
         sw_down = SW_DOWN.button_fall();
         sw_right = SW_LEFT.button_fall();
+
+        /* 展開の処理 */
+        if(Con.readButton(BUTTON_PAD, PUSHED)) DR.add_upper_cmd(EXPAND);
+        else DR.sub_upper_cmd(EXPAND);
+
+        /* インナーエリアに進入後にテーブル回転機構を所定の位置に移動させる */
+        if(Con.readButton(BUTTON_SANKAKU, PUSHED)) DR.add_upper_cmd(TABLE_POSITION);
+
+        /* ハンドル把持の処理 */
+        if(Con.readButton(BUTTON_MARU, PUSHED))
+        {
+            static int hand_count = 0;
+            if((hand_count % 2) == 0) DR.add_upper_cmd(HANDLE);
+            else DR.sub_upper_cmd(HANDLE);
+        }
+        if(upper_cmd & HOLD_HANDLE)
+        {
+            ////////////////////////////////////////////////
+            /* ここに位置制御へ以降する処理を書く */
+            /* 動作確認でない場合はここに展開の処理を書く */
+            ////////////////////////////////////////////////
+
+            DR.add_upper_cmd(SENDING_TABLE_CMD);
+        }
+
+        DR.sendUpperCmd(tableAngle, tableOmega);
     
+
         pid_gain_setting();
 
         flag_10ms = false;
@@ -284,7 +335,7 @@ void pid_gain_setting()
     settingPy.task(flag_500ms, sw_up, sw_down, setting_num);
     settingPz.task(flag_500ms, sw_up, sw_down, setting_num);
 
-    /* 値を代 */
+    /* 値を代入 */
     PIDvelX.setPara(settingVx.getKp(), settingVx.getKi(), settingVx.getKd());
     PIDvelY.setPara(settingVy.getKp(), settingVy.getKi(), settingVy.getKd());
     PIDvelZ.setPara(settingVz.getKp(), settingVz.getKi(), settingVz.getKd());
