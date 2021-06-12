@@ -2,6 +2,7 @@
 #define DEFINE_h
 
 #include <Arduino.h>
+#include <HardwareSerial.h>
 
 struct coords
 {
@@ -24,6 +25,9 @@ struct coords
 
 #define PIN_M1_ORIGIN 44 //ダミー
 #define PIN_M2_ORIGIN 45 //ダミー
+
+#define PIN_SW1 46 //ダミー
+#define PIN_SW2 47 //ダミー
 
 /* 出力ピンの定義 */
 #define PIN_EXPAND 40 //ダミー
