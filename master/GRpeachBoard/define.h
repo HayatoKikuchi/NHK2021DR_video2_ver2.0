@@ -1,13 +1,15 @@
 #ifndef DEFINE_h
 #define DEFINE_h
 
-#include "Arduino.h"
+#include <Arduino.h>
 
 struct coords{
     double x;
     double y;
     double z;
 };
+
+#define fabs(x) ((x)>0?(x):-(x))
 
 #define SERIAL_PC       Serial
 #define SERIAL_UPPER    Serial0
