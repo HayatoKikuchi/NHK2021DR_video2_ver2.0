@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "define.h"
 
-#define DIP1    0x01
+#define DIP1    0x01 //ON：コントローラで操作，OFF：GR-PEACHで操作
 #define DIP2    0x02
 #define DIP3    0x04
 #define DIP4    0x08
