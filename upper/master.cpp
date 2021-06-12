@@ -4,23 +4,44 @@
 Master::Master(HardwareSerial *_master)
 {
     master = _master;
+    Master::init_upper_cmd();
+}
+
+void Master::init_upper_cmd()
+{
+  Master::master_cmd = Master::pre_master_cmd = UPPER_ON;
+}
+
+void Master::add_upper_cmd(unsigned int addNum)
+{
+  Master::master_cmd |= addNum;
+}
+
+void Master::sub_upper_cmd(unsigned int subNum)
+{
+    if(Master::master_cmd & subNum) Master::master_cmd -= subNum;
 }
 
 void Master::sendMasterCmd()
 {
-    sendData[0] = 1; //ダミー
-    sendData[1] = 2; //ダミー
+    Master::pre_master_cmd = Master::master_cmd;
+
+    sendData[0] = (uint8_t)Master::master_cmd;
+    sendData[1] = 0; //reserved
     sendData[2] = (sendData[0] ^ sendData[1]);
     sendData[3] = END_BYTE;
 
-    for (int i = 0; i < 4; i++)
+    if(Master::pre_master_cmd != Master::master_cmd) //コマンドが変更されたときにのみ送信
     {
-        master->write(sendData[i]);
-    }
+        for (int i = 0; i < 4; i++)
+        {
+            master->write(sendData[i]);
+        }
+    }   
     
 }
 
-void Master::updateMasterCmd(uint8_t *status, coords *posi)
+void Master::updateMasterCmd(unsigned int *state, double *refAngle, double *refOmega)
 {
     while (master->available())
     {
@@ -28,22 +49,29 @@ void Master::updateMasterCmd(uint8_t *status, coords *posi)
         static int loop_num = 0;
         if(num == END_BYTE)
         {
-            uint8_t checksum = recv_num[0] ^ recv_num[1];
-            for (int i = 2; i < 5; i++)
-            {
-                checksum ^= recv_num[i];
-            }
+            uint8_t checksum = 1;
+            for (int i = 0; i < (RECIVEDATANUM - 3); i++) checksum ^= recv_num[i];
             
-            if(checksum == recv_num[5])
+            if(checksum == recv_num[RECIVEDATANUM - 1])
             {
-                for (int i = 0; i < 7; i++)
+                for (int i = 0; i < RECIVEDATANUM; i++)
                 {
                     reciveData[i] = recv_num[i];
                 }
             }
 
-            *status = reciveData[0];
-            *posi = {(double)reciveData[1], (double)reciveData[2], (double)reciveData[3]};
+            *state = (unsigned int)reciveData[0];
+
+            double recvAngle, recvOmega;
+            recvAngle = (double)(map(reciveData[1], 0, 255, 0, 600)) / 10.0; //0~127の値を0~600の範囲で再マップし，1/10の位を出現させる
+            recvOmega = (double)(map(reciveData[2], 0, 255, 0, 600)) / 10.0; //0~127の値を0~600の範囲で再マップし，1/10の位を出現させる
+
+            if(reciveData[0] & TABLE_POSI_NEGATIVE) recvAngle *= -1.0;
+            if(reciveData[0] & TABLE_OMEGA_NEGATIVE) recvOmega *= -1.0;
+
+            *refAngle = recvAngle;
+            *refOmega = recvOmega;
+
 
             loop_num = 0;
         }

@@ -6,27 +6,44 @@
 
 #define END_BYTE 0xB4
 
-#define MSTER_ON 0x01
-#define MASTER_OK 0x02
-#define INIT_TABLE 0x04
-#define HOLD_HANDLE 0x10
-#define HOLD_OK 0x20
+/* 送信で使用 */
+#define UPPER_ON 0x01
+#define UPPER_IS_OK 0x02
+#define HOLD_HANDLE 0x04
+
+/* 受信で使用 */
+#define MASTER_ON 0x01
+#define MASTER_IS_OK 0x02
+#define TABLE_POSITION 0x04
+#define EXPAND 0x08
+#define SENDING_TABLE_CMD 0x10
+#define TABLE_POSI_NEGATIVE 0x20
+#define TABLE_OMEGA_NEGATIVE 0x40
+#define HANDLE 0x80
+
+#define SENDDATANUM 4
+#define RECIVEDATANUM 6
 
 class Master
 {
 public:
     Master(HardwareSerial *_master);
-    
-    void sendMasterCmd();
-    void updateMasterCmd(uint8_t *status, coords *posi);
 
-    uint8_t sendData[4];
-    uint8_t reciveData[7];
+    void init_upper_cmd(void);
+    void add_upper_cmd(unsigned int addNum);
+    void sub_upper_cmd(usingned int subNum);
+    void sendMasterCmd();
+    void updateMasterCmd(unsigned int *state, double *refAngle, double *refOmega);
+
 
 private:
     HardwareSerial *master;
 
+    uint8_t sendData[SENDDATANUM];
+    uint8_t reciveData[RECIVEDATANUM];
+
     uint8_t recv_num[7];
+    unsigned int master_cmd, pre_master_cmd;
 
 };
 
