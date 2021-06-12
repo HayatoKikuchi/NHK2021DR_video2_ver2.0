@@ -1,7 +1,6 @@
 // HNK学生ロボコン2021 DR親機上半身の制御
 // Ⅱ型ポット防御（テーブル回転）の具体的な処理は赤崎が担当
-// マスターとのやその他処理は菊池が担当
-// 現在のバージョンはマスターと独立した制御になっている
+// マスターとの通信やその他処理は菊池が担当
 
 #include <Arduino.h>
 #include <MsTimer2.h>
@@ -14,6 +13,9 @@
 
 DipSW dip;
 Button userSW(PIN_SW);
+Button SW1(PIN_SW1);
+Button SW2(PIN_SW2);
+
 DualSchok4 Con(&SERIAL_CON);
 Master master(&SERIAL_MASTER);
 RoboClaw MD(&SERIAL_ROBOCLAW, 1);
@@ -22,11 +24,16 @@ FlagChange FlagUserLED(0.5, INT_TIME);
 
 bool flag_10ms = false;
 bool flag_expand = false;
-int led_emitting = 0;
-int dipState = 0;
+int led_emitting = 0; //基板上のLEDを奇麗に光らせるための変数
+int dipState = 0; //DIPスイッチの情報を格納
 
-coords position = {0.0, 0.0, radians(0.0)};
-uint8_t order = 0;
+unsigned int masterCmd = 0; //masterから送られてくるコマンド
+double tableAnlge, tableOmega;
+
+/* セットアップ中に決定しその後変更できない */
+#define MODE_CON 1
+#define MODE_MASTER 2
+unsigned int uppperMode = 0; //上半身の制御モード
 
 /* マイコンボード上の4つのLEDを光らせる関数 */
 // @param emitting_num int型下位4ビットで制御
@@ -62,6 +69,15 @@ int getSlideCmd(double ref)
     return (int)(ref / SLIDE_RADIAS * SLIDE_2RES_PI);
 }
 
+double getTurnNum(int pulse)
+{
+    return degrees((double)pulse / TURN_2RES_PI);
+}
+
+double getSlideNum(int pulse)
+{
+    return (double)pulse / SLIDE_2RES_PI * SLIDE_RADIAS;
+}
 
 void timer_warikomi()
 {
@@ -82,7 +98,7 @@ void timer_warikomi()
 
     /* ボード上のLEDを奇麗に光らせるための処理 */
     static int led_time_count = 0;
-    if(led_time_count++ == 99)
+    if(led_time_count++ == 49)
     {
         led_time_count = 0;
         if(led_emitting++ == 15) led_emitting = 0;
@@ -93,6 +109,8 @@ void timer_warikomi()
 void setup()
 {
     delay(1000);
+
+    
 
     pinMode(PIN_M1_ORIGIN, INPUT);
     pinMode(PIN_M2_ORIGIN, INPUT);
@@ -107,9 +125,22 @@ void setup()
     pinMode(PIN_LED_4, OUTPUT);
 
     pinMode(PIN_EXPAND, OUTPUT);
+    pinMode(PIN_HAND, OUTPUT);
 
+    /* 初期された確認のLチカ */
+    for(int i = 0; i < 6; i++)
+    {
+        for(int j = 1; j <= 8; j *= 2)
+        {
+            UserLED(j);
+            delay(70 - 12*i);
+        }
+        UserLED(LED3_HIGH);
+        delay(70 - 12*i);
+        UserLED(LED2_HIGH);
+        delay(70 - 12*i);
+    }
     UserLED(LED_OLL_HIGH);
-    
     delay(1000);
 
     SERIAL_PC.begin(115200);
@@ -118,49 +149,77 @@ void setup()
     MD.begin(115200);
 
     bool ready_to_start = false;
+
     while (!ready_to_start)
     {
-        Con.update();
-        master.updateMasterCmd(&order, &position);
+        /* setup中のLチカ */
+        static bool emitting = false;
+        FlagUserLED.change(&emitting);
+        if(emitting) UserLED(0b0011);
+        else UserLED(0b1100);
 
-        static int setup_phase = 4;//SET_PHASE1;
-        static bool m1_setup = false, m2_setup = false;
-        bool moter_setup = (m1_setup == true && m2_setup == true);
         static bool flag_led = false;
-        FlagBoardLED.change(&flag_led);
+        FlagBoardLED.change(&flag_led); // for UserLED
 
-        if(Con.readButton(BUTTON_PS, PUSHED) && (setup_phase < SET_PHASE4)) setup_phase++;
-        //if(!moter_setup) setup_phase = 1;
+        /*  */
+        static int setup_phase = SET_PHASE1; 
+        static bool table_setup = false; //テーブル回転機構の原点合わせ完了の真偽
+        static bool table_standby = false; //テーブル回転機構の初期状態の真偽
+
+        if(uppperMode == MODE_CON)
+        {
+            Con.update();
+            if((Con.readButton(BUTTON_PS, PUSHED) || SW1.button_fall()) && setup_phase < SET_PHASE4) setup_phase++;
+            if(!table_setup) setup_phase = SET_PHASE2;
+            if(!table_standby) setup_phase = SET_PHASE3;
+
+        }
+        else if(uppperMode == MODE_MASTER) 
+        {
+            master.updateMasterCmd(&masterCmd, &tableAnlge, &tableOmega);
+            
+            if(SW1.button_fall() && setup_phase < SET_PHASE4) setup_phase++;
+            if(!table_setup) setup_phase = SET_PHASE2;
+            if(!table_standby) setup_phase = SET_PHASE3;
+        }
 
         switch (setup_phase)
         {
         case SET_PHASE1:
             /* ここで人間がロボットのセッティングを行う． */
+            static bool master_recv = false;
+
             if(flag_led) BoardLED(LED1_HIGH);
             else BoardLED(LED_OLL_LOW);
 
             dipState = dip.getDipState(); //このタイミングでのみディップスイッチの変更が可能
+            
+            if(SW1.button_fall())
+            {
+                if(dip.getBool(DIP1, ON)) uppperMode = MODE_CON;
+                else uppperMode = MODE_MASTER;
+
+                master_recv = true;
+            }
+
+            if(master_recv)
+            {
+                master.updateMasterCmd(&masterCmd, &tableAnlge, &tableOmega);
+                if(masterCmd & MASTER_ON) setup_phase = SET_PHASE2;
+            }
 
             break;
 
         case SET_PHASE2:
-            /* 主軸回転の原点出し */
-            if(moter_setup || flag_led) BoardLED(LED2_HIGH);
-            else if(!moter_setup && flag_led) BoardLED(LED_OLL_LOW);
 
-            if (!digitalRead(PIN_M1_ORIGIN) && !m1_setup)
-            {
-                MD.SpeedM1(ADR_MD1, getTurnCmd(30.0)); //30.0deg/s
-            }
-            else if(!digitalRead(PIN_M1_ORIGIN))
-            {
-                MD.ForwardM1(ADR_MD1, 0);
-                MD.SetEncM1(ADR_MD1, SET_ENC_M1);
-                m1_setup = true;
-            }
+            static int table_pahse = 1; // 1：直動，2：回転
+
+            if(table_setup || flag_led) BoardLED(LED2_HIGH);
+            else if(!table_setup && flag_led) BoardLED(LED_OLL_LOW);
+
 
             /* 直動スライダの原点出し */
-            if(digitalRead(PIN_M2_ORIGIN) && m2_setup)
+            if(digitalRead(PIN_M2_ORIGIN) && (table_pahse == 1))
             {
                 MD.SpeedM2(ADR_MD1, getSlideCmd(0.1));
             }
@@ -168,7 +227,21 @@ void setup()
             {
                 MD.ForwardM1(ADR_MD1, 0);
                 MD.SetEncM1(ADR_MD1, SET_ENC_M2);
-                m2_setup = true;
+                table_pahse = 2;
+                delay(500);
+            }
+
+            /* 主軸回転の原点出し */
+            if (!digitalRead(PIN_M1_ORIGIN) && (table_pahse == 2))
+            {
+                MD.SpeedM1(ADR_MD1, getTurnCmd(30.0)); //30.0deg/s
+            }
+            else if(!digitalRead(PIN_M1_ORIGIN))
+            {
+                MD.ForwardM1(ADR_MD1, 0);
+                MD.SetEncM1(ADR_MD1, SET_ENC_M1);
+                delay(500); 
+                table_setup = true;
             }
 
             break;
@@ -178,8 +251,20 @@ void setup()
             if(flag_led) BoardLED(LED3_HIGH);
             else BoardLED(LED_OLL_LOW);
             
-            MD.SpeedAccelDeccelPositionM1(ADR_MD1, getTurnCmd(180.0), getTurnCmd(30.0), getTurnCmd(180.0), getTurnCmd(TURN_2RES_PI), true);
+            MD.SpeedAccelDeccelPositionM1(ADR_MD1, getTurnCmd(180.0), getTurnCmd(30.0), getTurnCmd(180.0), getTurnCmd(TURN_FIRST_POINT), true);
             MD.SpeedAccelDeccelPositionM2(ADR_MD1, getSlideCmd(0.5), getSlideCmd(0.1), getSlideCmd(0.5), getSlideCmd(SLIDE_FIRST_POINT), true);
+
+            static int time_count = 0;
+            if(time_count++ >= 99)
+            {
+                double turn_posi, slide_posi;
+                turn_posi = getTurnNum(MD.ReadEncM1(ADR_MD1));
+                slide_posi = getSlideNum(MD.ReadEncM2(ADR_MD2));
+
+                if(turn_posi > TURN_FIRST_POINT && slide_posi > SLIDE_FIRST_POINT) table_standby = true;
+
+                time_count = 0; 
+            }
 
             break;
 
@@ -187,9 +272,17 @@ void setup()
             /* コントローラの処理待ち */
             BoardLED(LED_OLL_HIGH);
 
-            if(Con.readButton(BUTTON_PS,PUSHED) || userSW.button_fall())
+            switch (uppperMode)
             {
-                ready_to_start = true;
+            case MODE_CON:
+                if(Con.readButton(BUTTON_PS,PUSHED) || userSW.button_fall()) ready_to_start = true;
+                break;
+            
+            case MODE_MASTER:
+                if(masterCmd & MASTER_IS_OK) ready_to_start = true;
+            
+            default:
+                break;
             }
 
             break;
@@ -198,11 +291,7 @@ void setup()
             break;
         }
 
-        /* setup中のLチカ */
-        static bool emitting = false;
-        FlagUserLED.change(&emitting);
-        if(emitting) UserLED(0b0011);
-        else UserLED(0b1100);
+        if(userSW.button_fall()) ready_to_start = true;
         
         delay(INT_TIME_MS);
     }
@@ -228,13 +317,36 @@ void loop()
     if(flag_10ms)
     {
         Con.update();
-        master.updateMasterCmd(&order, &position);
+        master.updateMasterCmd(&masterCmd, &tableAnlge, &tableOmega);
 
-        if(Con.readButton(BUTTON_SANKAKU, PUSHED)) flag_expand = true;
+        if(Con.readButton(BUTTON_SANKAKU, PUSHED) || (masterCmd & EXPAND)) flag_expand = true;
         digitalWrite(PIN_EXPAND, flag_expand);
 
         UserLED(led_emitting);
         BoardLED(dipState);
+
+        /* テーブル回転機構をハンドル把持前の状態にする */
+        static bool table_set = true;
+        if(table_set && (masterCmd & TABLE_POSITION)) 
+        {
+            //////////////////////////////////////////////////////////////////
+            /* ここにテーブル回転機構をハンドル把持前の状態にする処理を書く */
+            //////////////////////////////////////////////////////////////////
+            table_set = false;
+        }
+
+        /* ハンドル把持する処理 */
+        if(masterCmd & HANDLE)
+        {
+            digitalWrite(PIN_HAND, HIGH);
+            master.add_upper_cmd(HOLD_HANDLE);
+        }
+        else
+        {
+            digitalWrite(PIN_HAND, LOW);
+        }
+
+        master.sendMasterCmd();
 
         flag_10ms = false;
     }
