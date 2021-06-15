@@ -11,9 +11,9 @@ struct coords{
 
 #define SERIAL_LPMSME1  Serial1
 #define SERIAL_ROBOCLAW Serial4
-#define SERIAL_LEONARDO Serial5
+#define SERIAL_CON      Serial7
 #define SERIAL_LCD      Serial6
-#define SERIAL_XBEE     Serial7
+//#define SERIAL_XBEE     Serial7
 
 #define PIN_XBEERESET 66
 
@@ -42,27 +42,6 @@ struct coords{
 
 #define PIN_CSB 10
 
-// Lernardo からのコントローラ用データのマスクデータ
-#define BUTTON_X  0x0001
-#define BUTTON_Y  0x0002
-#define BUTTON_A  0x0004
-#define BUTTON_B  0x0008
-
-#define BUTTON_L1     0x0010
-#define BUTTON_R1     0x0020
-#define BUTTON_L2     0x0040
-#define BUTTON_R2     0x0080
-
-#define BUTTON_JOY_L   0x0100
-#define BUTTON_JOY_R   0x0200
-#define BUTTON_BACK    0x0400
-#define BUTTON_START   0x0800
-
-#define BUTTON_UP     0x1000
-#define BUTTON_RIGHT  0x2000
-#define BUTTON_DOWN   0x4000
-#define BUTTON_LEFT   0x8000
-
 // 制御周期
 #define INT_TIME			( 0.01 )//( 0.001 )
 
@@ -74,10 +53,10 @@ struct coords{
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 // >>> ManualControlで使用 >>>>>>>>>>>>>>>>>>
-#define JOY_DEADBAND    ( 5 )
+#define JOY_DEADBAND    ( 2 )
 #define JOY_MAXVEL      ( 1.0 )
 #define JOY_MAXANGVEL   ( 2.5 )
-#define MANUAL_LOWPASS_T  ( 0.25 )
+#define MANUAL_LOWPASS_T  ( 0.05 )
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 // >>> PathTrackingで使用 >>>>>>>>>>>>>>>>>>
@@ -115,7 +94,7 @@ struct coords{
 #define PLATFORM_OMNI3WHEEL    ( 2 )
 #define PLATFORM_DUALWHEEL     ( 3 )
 
-#define DRIVE_UNIT  ( PLATFORM_OMNI4WHEEL )
+#define DRIVE_UNIT  ( PLATFORM_MECHANUM )
 
 #if DRIVE_UNIT == PLATFORM_DUALWHEEL
     // 双輪キャスター関連
@@ -129,10 +108,10 @@ struct coords{
     #define _2RES_PI_T  ( 2 * 500 / 3.141592 ) //  ターンテーブルの角速度[rad/s]からRoboClawの指令値[pulses/s]に変換するための定数(500はエンコーダ分解能) 4逓倍しているが，分母は元は2*piで，通分されている
 #elif DRIVE_UNIT == PLATFORM_MECHANUM
     // メカナム関連
-    #define WHEEL_R		( 0.05 )    //車輪半径
-    #define TREAD_2 	( 0.15561 ) //車両中心から車輪接地点までのY軸方向距離(トレッド/2)
-    #define WHEELBASE_2	( 0.26023 ) //車両中心から車輪接地点までのX軸方向距離(ホイールベース/2)
-    #define _2RES_PI  ( 2.0 * 2048 / PI ) //  駆動輪の角速度[rad/s]からRoboClawの指令値[pulses/s]に変換するための定数(2048はエンコーダ分解能) 4逓倍しているが，分母は元は2*piで，通分されている
+    #define WHEEL_R		( 0.0635 )    //車輪半径
+    #define TREAD_2 	( 0.296 ) //車両中心から車輪接地点までのY軸方向距離(トレッド/2)
+    #define WHEELBASE_2	( 0.265 ) //車両中心から車輪接地点までのX軸方向距離(ホイールベース/2)
+    #define _2RES_PI  ( 2.0 * 500 / PI ) //  駆動輪の角速度[rad/s]からRoboClawの指令値[pulses/s]に変換するための定数(2048はエンコーダ分解能) 4逓倍しているが，分母は元は2*piで，通分されている
 #elif DRIVE_UNIT == PLATFORM_OMNI3WHEEL  
     #define WHEEL_R		( 0.019 )
     #define DIST2WHEEL  ( 0.120 )
@@ -150,7 +129,7 @@ struct coords{
 #endif
 
 // RoboClaw関連
-#define ADR_MD1             ( 128 )
+#define ADR_MD1             ( 130 )
 #define ADR_MD2             ( 129 )
 
 // 自己位置推定用エンコーダ関連
@@ -159,6 +138,63 @@ struct coords{
 #define RADIUS_Y    ( 0.024 ) // Y軸計測輪の半径[m]
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-//#define STATE_ALL   ( STATE1 + STATE2 + STATE3 + STATE4 )
+// >>> Controllerまわりで使用 >>>>>>>>>>>>>>>>>>>>>
+#define CON_ADACHI    ( 0 )
+#define CON_ELECOM    ( 1 )
+#define CON_DS4       ( 2 )
+
+#define CON_TYPE  ( CON_DS4 )
+
+#if CON_TYPE == CON_ADACHI
+    #define MASK_BUTTON_UP    0x01
+    #define MASK_BUTTON_RIGHT 0x02
+    #define MASK_BUTTON_DOWN  0x04
+    #define MASK_BUTTON_LEFT  0x08
+    #define MASK_BUTTON_R1    0x10
+    #define MASK_BUTTON_R2    0x20
+    #define MASK_BUTTON_L1    0x40
+    #define MASK_BUTTON_L2    0x80
+
+    #define BUTTON_UP    1
+    #define BUTTON_RIGHT 2
+    #define BUTTON_DOWN  3
+    #define BUTTON_LEFT  4
+    #define BUTTON_R1    5
+    #define BUTTON_R2    6
+    #define BUTTON_L1    7
+    #define BUTTON_L2    8
+#elif CON_TYPE == CON_ELECOM || CON_TYPE == CON_DS4
+    #define MASK_BUTTON_X  0x0001
+    #define MASK_BUTTON_Y  0x0002
+    #define MASK_BUTTON_A  0x0004
+    #define MASK_BUTTON_B  0x0008
+
+    #define MASK_BUTTON_L1     0x0010
+    #define MASK_BUTTON_R1     0x0020
+    #define MASK_BUTTON_L2     0x0040
+    #define MASK_BUTTON_R2     0x0080
+
+    #define MASK_BUTTON_PS     0x0100 // PS4のときはPSボタン
+    #define MASK_BUTTON_PAD    0x0200 // PS4のときはパッド
+    #define MASK_BUTTON_JOY_L   0x0100
+    #define MASK_BUTTON_JOY_R   0x0200
+    #define MASK_BUTTON_BACK    0x0400
+    #define MASK_BUTTON_START   0x0800
+
+    #define MASK_BUTTON_UP     0x1000
+    #define MASK_BUTTON_RIGHT  0x2000
+    #define MASK_BUTTON_DOWN   0x4000
+    #define MASK_BUTTON_LEFT   0x8000
+
+    #define BUTTON_UP    12
+    #define BUTTON_RIGHT 13
+    #define BUTTON_DOWN  14
+    #define BUTTON_LEFT  15
+    #define BUTTON_R1    5
+    #define BUTTON_R2    7
+    #define BUTTON_L1    4
+    #define BUTTON_L2    6
+#endif
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #endif

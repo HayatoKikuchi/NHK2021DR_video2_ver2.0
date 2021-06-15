@@ -55,7 +55,7 @@ void Platform::platformInit(coords initPosi){
 
     preEncX = 0;
     preEncY = 0;
-    pre_angle_rad = Posi.z;
+    pre_angle_rad = 0.0;//Posi.z;
     init_done = true;
 }
 

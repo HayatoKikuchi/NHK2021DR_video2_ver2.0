@@ -7,20 +7,22 @@
 #include <SPI.h>
 
 #include "define.h"
-#include "phaseCounterPeach.h"
-#include "lpms_me1Peach.h"
-#include "SDclass.h"
+
 #include "AutoControl.h"
-#include "LCDclass.h"
 #include "Button.h"
+#include "Controller.h"
+#include "LCDclass.h"
+#include "lpms_me1Peach.h"
 #include "ManualControl.h"
+#include "phaseCounterPeach.h"
 #include "Platform.h"
+#include "SDclass.h"
 #include "RoboClaw.h"
 
 phaseCounter enc1(1);
 phaseCounter enc2(2);
 
-ManualControl controller;
+ManualControl manualCom;
 AutoControl autonomous;
 Platform platform(1, 1, -1, -1); // 括弧内の引数で回転方向を変えられる
 
@@ -28,7 +30,7 @@ Platform platform(1, 1, -1, -1); // 括弧内の引数で回転方向を変え�
 lpms_me1 lpms(&SERIAL_LPMSME1);
 myLCDclass myLCD(&SERIAL_LCD);
 mySDclass mySD;
-bool SDwrite = false;
+bool SDwrite = false; // trueでSDカードに書き出し
 
 Button button_up(PIN_SW_UP);
 Button button_down(PIN_SW_DOWN);
@@ -40,6 +42,8 @@ Button dip1(PIN_DIP1);
 Button dip2(PIN_DIP2);
 Button dip3(PIN_DIP3);
 Button dip4(PIN_DIP4);
+
+Controller CON;
 
 // グローバル変数の設定
 coords gPosi = {0.0, 0.0, 0.0};
@@ -65,43 +69,6 @@ void LEDblink(byte pin, int times, int interval){
     analogWrite(pin, 255);
     delay(interval);
     analogWrite(pin, 0);
-  }
-}
-
-// コントローラデータを取得する部分
-void controller_receive(){
-  static int recv_num = 0;
-  static int checksum = 0;
-  static char recv_msgs[9];
-  char c;
-  while(SERIAL_LEONARDO.available()){
-    c = SERIAL_LEONARDO.read();
-    if(c == '\n'){
-      if(recv_num == 9){// && (checksum & 0x3F == recv_msgs[recv_num-1] - 0x20)){
-        ButtonState = 0, LJoyX = 0, LJoyY = 0, RJoyX = 0, RJoyY = 0;
-        ButtonState |= recv_msgs[0] - 0x20;
-        ButtonState |= (recv_msgs[1] - 0x20) << 6;
-        ButtonState |= (recv_msgs[2] - 0x20) << 12;
-       
-        LJoyX |= (recv_msgs[3] - 0x20);
-        LJoyX |= ((recv_msgs[4] - 0x20) & 0x03) << 6;
-
-        LJoyY |= ((recv_msgs[4] - 0x20) & 0x3C) >> 2;
-        LJoyY |= ((recv_msgs[5] - 0x20) & 0x0F) << 4;
-
-        RJoyX |= ((recv_msgs[5] - 0x20) & 0x30) >> 4;
-        RJoyX |= ((recv_msgs[6] - 0x20) & 0x3F) << 2;
-
-        RJoyY |= (recv_msgs[7] - 0x20);
-        RJoyY |= ((recv_msgs[8] - 0x20) & 0x03) << 6;
-      }
-     recv_num = 0;
-     //checksum = 0;
-   }else{
-     recv_msgs[recv_num] = c; 
-     //checksum += recv_msgs[recv_num];
-     recv_num++;
-   }
   }
 }
 
@@ -136,8 +103,8 @@ void timer_warikomi(){
   double angle_rad;
   int encX, encY; // X,Y軸エンコーダのカウント値
   // 自己位置推定用エンコーダのカウント値取得
-  encX = -enc1.getCount();
-  encY =  enc2.getCount();
+  encX = enc1.getCount();
+  encY = enc2.getCount();
 
   // LPMS-ME1のから角度を取得
   angle_rad = (double)lpms.get_z_angle();
@@ -166,7 +133,7 @@ void setup()
   String lcd_message = "";
 
   Serial.begin(115200);
-  SERIAL_LEONARDO.begin(115200);
+  SERIAL_CON.begin(115200);
   SERIAL_LCD.begin(115200);
   //SERIAL_XBEE.begin(115200);
   
@@ -218,10 +185,11 @@ void setup()
   
   myLCD.write_line(">> Push A Button <<", LINE_4);
   
-  // コントローラの"A"ボタンが押されるまで待機
+  // コントローラの"右"ボタンが押されるまで待機
   while(!ready_to_start){
-    controller_receive();
-    if(ButtonState & BUTTON_A){
+    delay(10);
+    CON.update();
+    if(CON.readButton(BUTTON_RIGHT) == 2){
       ready_to_start = true;
     }
   }
@@ -241,7 +209,7 @@ void setup()
   enc1.init();
   enc2.init();
 
-  controller.init();
+  manualCom.init();
   platform.platformInit(gPosi);
   
   autonomous.initSettings(); // これをやっていないと足回りの指令速度生成しない
@@ -256,13 +224,12 @@ void setup()
 
 void loop()
 {
-  controller_receive(); // コントローラ(Leonardo)からの受信
-
   // 10msに1回ピン情報を出力する
   if(flag_10ms){
+    CON.update(); // コントローラからの受信
     
     // 位置制御させるための処理 >>>>
-    coords refV = autonomous.getRefVel(ButtonState); // 各目標点に対する位置決め動作を生成
+    coords refV = autonomous.getRefVel(CON.getButtonState()); // 各目標点に対する位置決め動作を生成
     platform.VelocityControl(refV); // 目標速度に応じて，プラットフォームを制御
     // <<<<
 
@@ -282,13 +249,17 @@ void loop()
       mySD.write_logdata(dataString);
     }
     // シリアル出力する
-    Serial.print(ButtonState,BIN);
+    Serial.print(CON.getButtonState(),BIN);
     Serial.print(" ");
     Serial.print(refV.x);
     Serial.print(" ");
     Serial.print(refV.y);
     Serial.print(" ");
     Serial.print(refV.z);
+    Serial.print(" ");
+    Serial.print(gPosi.x);
+    Serial.print(" ");
+    Serial.print(gPosi.y);
     Serial.print(" ");
     Serial.println(gPosi.z);
     //SERIAL_XBEE.flush();

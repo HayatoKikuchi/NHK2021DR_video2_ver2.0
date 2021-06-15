@@ -15,7 +15,7 @@ ManualControl::ManualControl()
     anglePIDEnable = false;
 }
 
-void ManualControl::init()
+int ManualControl::init()
 {
   // コンストラクタでローパスフィルタの初期化ができなかったので修正 
   velX_filter.setLowPassPara(MANUAL_LOWPASS_T, 0.0);//ローパスフィルタのTと初期値を設定
@@ -23,7 +23,7 @@ void ManualControl::init()
   velZ_filter.setLowPassPara(MANUAL_LOWPASS_T, 0.0);//ローパスフィルタのTと初期値を設定
 }
 
-coords ManualControl::getRawVel(unsigned int JoyX, unsigned int JoyY, unsigned int JoyZ)
+coords ManualControl::getRefVel(unsigned int JoyX, unsigned int JoyY, unsigned int JoyZ)
 {
     int joyraw;
     coords rawV, refV;
@@ -36,7 +36,7 @@ coords ManualControl::getRawVel(unsigned int JoyX, unsigned int JoyY, unsigned i
       }else{
         joyraw += JOY_DEADBAND;
       }
-      rawV.x = -(joyraw)/(127.0 - (double)JOY_DEADBAND) * JOY_MAXVEL;
+      rawV.x = (joyraw)/(127.0 - (double)JOY_DEADBAND) * JOY_MAXVEL;
     }else{
       rawV.x = 0.0;
     }
@@ -49,7 +49,7 @@ coords ManualControl::getRawVel(unsigned int JoyX, unsigned int JoyY, unsigned i
       }else{
         joyraw += JOY_DEADBAND;
       }
-      rawV.y = -(joyraw)/(127.0 - (double)JOY_DEADBAND) * JOY_MAXVEL;
+      rawV.y = (joyraw)/(127.0 - (double)JOY_DEADBAND) * JOY_MAXVEL;
     }else{
       rawV.y = 0.0;
     }
@@ -62,7 +62,7 @@ coords ManualControl::getRawVel(unsigned int JoyX, unsigned int JoyY, unsigned i
       }else{
         joyraw += JOY_DEADBAND;
       }
-      rawV.z = -(joyraw)/(127.0 - (double)JOY_DEADBAND) * JOY_MAXANGVEL;
+      rawV.z = (joyraw)/(127.0 - (double)JOY_DEADBAND) * JOY_MAXANGVEL;
     }else{
       rawV.z = 0.0;
     }

@@ -10,8 +10,8 @@ public:
     /*********** 関数宣言 ***********/
     ManualControl();
     
-    void init();
-    coords getRawVel(unsigned int, unsigned int, unsigned int);
+    int init();
+    coords getRefVel(unsigned int, unsigned int, unsigned int);
 
 private:
     bool anglePIDEnable;

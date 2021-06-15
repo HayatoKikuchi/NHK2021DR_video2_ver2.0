@@ -18,7 +18,7 @@ void AutoControl::gPosiInit(){
     gPosi.z = motion.refangle[0];
 }
 
-coords AutoControl::pathTrackingMode(int mode, int state, int nextPhase){ // 軌道追従モード
+coords AutoControl::pathTrackingMode(int mode, int endPathnum, int nextPhase){ // 軌道追従モード
     coords refV;
     int pathNum = getPathNum();
 
@@ -26,12 +26,12 @@ coords AutoControl::pathTrackingMode(int mode, int state, int nextPhase){ // 軌
     int syusoku = motion.calcRefvel(); // 収束していれば　1　が返ってくる
     
     if(syusoku == 1){ // 収束して次の曲線へ
-        if( pathNum <= state ){
+        if( pathNum <= endPathnum ){
             motion.Px[3*pathNum+3] = gPosi.x;
             motion.Py[3*pathNum+3] = gPosi.y;
             motion.incrPathnum(0.02, 0.997); // 次の曲線へ．括弧の中身は収束に使う数値
 
-            if( pathNum == state ) phase = nextPhase;
+            if( pathNum == endPathnum ) phase = nextPhase;
         }
     }else if(syusoku == 0){ // まだ収束していない，軌道追従中
         refV.x = motion.refVx;
@@ -113,7 +113,45 @@ coords AutoControl::getRefVel(unsigned int swState){
     coords refV = {0.0, 0.0, 0.0};
     static unsigned int pre_swState = swState;
 
-    // Edit here >>>>>
+    // example of position PID >>>>>
+    if( phase == 0 ){
+        // ボタンが押されるまで待機
+        if((swState != pre_swState) && (swState & MASK_BUTTON_A == MASK_BUTTON_A)){ // Aボタンが押されたら軌道追従開始
+            //motion.incrPathnum(0.02, 0.997); // 次の位置へ．第1引数は収束半径，第2引数は収束したと判定するベジエ曲線のt値(位置制御では使わない)
+            phase = 1;
+        }
+    }
+    else if( phase == 1 ){
+        refV = pathTrackingMode(FOLLOW_COMMAND, 0, 2); // 1つのパスを追従する．最終地点に収束したら，自動で次のフェーズに移行する
+    }
+    else if(phase == 2){
+        if(motion.getMode() != POSITION_PID) motion.setMode(POSITION_PID); // 強制的に位置PIDモードにする
+
+        int syusoku = motion.calcRefvel(); // 初期位置Px[3],Py[3]から，最終位置Px[6],Py[6],refangle[1]で位置PID制御
+        refV.x = motion.refVx; // 計算された値を代入
+        refV.y = motion.refVy;
+        refV.z = motion.refVz;
+        if((syusoku == 1) && ((swState != pre_swState) && (swState & MASK_BUTTON_B == MASK_BUTTON_B))){ // 収束していて，かつBボタンが押されたら元の位置に向かって軌道追従
+            motion.incrPathnum(0.02, 0.997); // 次の位置へ．第1引数は収束半径，第2引数は収束したと判定するベジエ曲線のt値(位置制御では使わない)
+            phase = 3;
+        }
+    }
+    else if(phase == 3){
+        refV = pathTrackingMode(FOLLOW_COMMAND, 2, 4); // 1つのパスを追従する．最終地点に収束したら，自動で次のフェーズに移行する
+    }
+    else if(phase == 4){
+        if(motion.getMode() != POSITION_PID) motion.setMode(POSITION_PID); // 強制的に位置PIDモードにする
+
+        int syusoku = motion.calcRefvel(); // 初期位置Px[3],Py[3]から，最終位置Px[6],Py[6],refangle[1]で位置PID制御
+        refV.x = motion.refVx; // 計算された値を代入
+        refV.y = motion.refVy;
+        refV.z = motion.refVz;
+        if((syusoku == 1) && ((swState != pre_swState) && (swState & MASK_BUTTON_A == MASK_BUTTON_A))){ // 収束していて，かつAボタンが押されたら1つ目の経路を追従
+            motion.setPathNum(0); // pathNumを0(最初のパス)に変更
+            motion.setConvPara(0.02, 0.997); // 次のパスへ．第1引数は収束半径，第2引数は収束したと判定するベジエ曲線のt値(位置制御では使わない)
+            phase = 1;
+        } // 以降，1~4の繰り返し
+    }
     // <<<<<
 
     else{

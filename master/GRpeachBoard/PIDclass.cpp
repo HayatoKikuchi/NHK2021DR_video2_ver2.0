@@ -14,7 +14,7 @@ PID::PID(float xKp, float xKi, float xKd, float xint_time)
     init_done = false;
 }
 
-void PID::PIDinit(float ref, float act)
+float PID::PIDinit(float ref, float act)
 {
     preError = ref - act;
     intError = 0.0; // 積分値の初期化

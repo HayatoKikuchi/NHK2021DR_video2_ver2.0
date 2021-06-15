@@ -8,7 +8,7 @@ class PID
 public:
     PID(float xKp, float xKi, float xKd, float xint_time);
     float getCmd(float ref, float act, float maxcmd);
-    void PIDinit(float ref, float act);
+    float PIDinit(float ref, float act);
     void setPara(float xKp, float xKi, float xKd);
 
 private:
@@ -19,7 +19,7 @@ private:
     float Kd;
     float int_time;
     
-    bool init_done;
+    boolean init_done;
     
 };
 
