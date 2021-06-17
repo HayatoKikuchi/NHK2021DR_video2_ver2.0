@@ -1,27 +1,25 @@
 #include <Arduino.h>
 #include <MsTimer2.h>
-
-#include "define.h"
-#include "Platform.h"
-#include "lpms_me1Peach.h"
-#include "phaseCounterPeach.h"
-#include "DualShock4.h"
-#include "ManualControl.h"
-#include "PIDclass.h"
-#include "operator.h"
-#include "LCDclass.h"
-#include "Setting.h"
-#include "Button.h"
 #include "RoboClaw.h"
-//#include "PathTracking.h"
+
+#include "Button.h"
+#include "Controller.h"
+#include "define.h"
+#include "LCDclass.h"
+#include "lpms_me1Peach.h"
+#include "ManualControl.h"
+#include "operator.h"
+#include "phaseCounterPeach.h"
+#include "Platform.h"
+#include "PIDclass.h"
+#include "Setting.h"
 
 Platform mechanum;
-//PathTracking track(POSITION_PID);
 
 lpms_me1 lpms(&SERIAL_LPMSME1);
 phaseCounter encX(1);
 phaseCounter encY(2);
-DualSchok4 Con(&SERIAL_XBEE);
+Controller Con;
 ManualControl ManuCon;
 Operator DR(&SERIAL_UPPER);
 myLCDclass lcd(&SERIAL_LCD);
@@ -77,17 +75,18 @@ double tableAngle = 0, tableOmega = 0; //値は[度]
 /* コントローラの受信と確認のLチカを行う関数 */
 void controller_update()
 {
-    if(Con.update()) digitalWrite(PIN_LED_USER, HIGH);
-    else digitalWrite(PIN_LED_USER, LOW);
+    Con.update();
 }
 
 /* ロボットの移動速度を得る関数 */
-coords getRobotVelocity(coords robotPosition)
+coords getRobotVelocity()
 {
     coords vel;
     vel.x = (prePosition.x - position.x)/INT_TIME;
     vel.y = (prePosition.y - position.y)/INT_TIME;
     vel.z = (prePosition.z - position.z)/INT_TIME;
+
+    prePosition = position; //前の値を更新
 
     return vel;
 }
@@ -106,16 +105,19 @@ void timer_warikomi()
 
     DR.RGB_led(2); //フルカラーLEDを光らせる
 
+    /* 自己位置およびロボットの移動速度の取得処理 */
     int encX_count = encX.getCount();
     int encY_count = encY.getCount();
     double Z_angle = lpms.get_z_angle();
     position = mechanum.getPosi(encX_count, encY_count, Z_angle); gPosi = position; //ロボットの自己位置を更新
-    velocity = getRobotVelocity(position); //ロボットの移動速度を更新
+    velocity = getRobotVelocity(); //ロボットの移動速度を更新
 
-    coords conVel = ManuCon.getRawVel(Con.readJoy(LX), Con.readJoy(LY), Con.readJoy(RY));
+    /* 足回りの速度制御または位置制御の処理 */
+    coords conVel = ManuCon.getRefVel(Con.readJoyLXbyte(), Con.readJoyLYbyte(), Con.readJoyRYbyte());
     coords refVel; //最終的な足回りの目標速度
-    bool flag_setting = SETPOSI_X <= setting_num && setting_num <= SETPOSI_Z; //位置PIDのゲイン調整をしている場合はtrue
+    bool flag_setting = (SETPOSI_X <= setting_num) && (setting_num <= SETPOSI_Z); //位置PIDのゲイン調整をしている場合はtrue
     dummyPosition = getDummyPosition(flag_setting); //位置PID制御のゲイン調整を開始したら仮の原点を得る
+
     if(dipsw.getBool(DIP3,ON) || dipsw.getBool(DIP4,ON))
     {
         coords rawVel;
@@ -150,7 +152,7 @@ void setup()
     SERIAL_PC.begin(115200);
     SERIAL_LCD.begin(115200);
     SERIAL_UPPER.begin(115200);
-    Con.begin(115200);
+    SERIAL_CON.begin(115200);
 
     DR.sendUpperCmd(); //上半身に受信準備ができたことを知らせる
 
@@ -172,6 +174,8 @@ void setup()
         
         delay(10);
     }
+
+    DR.LEDblink(PIN_LED_BLUE, 3 , 100); //GR-SAKURAの受信確認
     
     lcd.clear_display();
     lcd.write_line("    Setting Time    ", LINE_1);
@@ -195,16 +199,15 @@ void setup()
     PIDPosiY.PIDinit(position.y, position.y);
     PIDPosiZ.PIDinit(position.z, position.z);
 
-    /* 軌道追従および位置PID制御の初期化 */
-    //track.initSettings();
+    /* 軌道追従の初期化 */
 
     //PSボタンが押されるまで待機（ボード上のスイッチでも可）
     ready_to_start = false; 
     while (!ready_to_start)
     {
-        controller_update();
+        digitalWrite(PIN_LED_USER, Con.update()); //コントローラの更新と受信確認のLチカ
         /* この間にロボットの位置合わせなどを行う */
-        if(Con.readButton(BUTTON_PS,PUSHED) || userSW.button_fall())
+        if((Con.readButton(MASK_BUTTON_PS) == PUSHED) || userSW.button_fall())
         {
             if(lpms.init())
             {
@@ -240,8 +243,8 @@ void loop()
     enc_count = enc.getEncCount(); //エンコーダのカウント値を更新（10msでは読み飛ばしが起こった）
     if(flag_10ms)
     {
-        controller_update();
-        DR.updateUpperCmd(&upper_cmd);
+        digitalWrite(PIN_LED_USER, Con.update()); //コントローラの更新と受信確認のLチカ
+        DR.updateUpperCmd(&upper_cmd); //上半身との通信
 
         /* ボタンの処理（10ms周期でチャタリング対策） */
         dipsw_state = dipsw.getDipState();
@@ -251,31 +254,35 @@ void loop()
         sw_down = SW_DOWN.button_fall();
         sw_right = SW_LEFT.button_fall();
 
-        /* 展開の処理 */
-        if(Con.readButton(BUTTON_PAD, PUSHED)) DR.add_upper_cmd(EXPAND);
-        else DR.sub_upper_cmd(EXPAND);
-
-        /* インナーエリアに進入後にテーブル回転機構を所定の位置に移動させる */
-        if(Con.readButton(BUTTON_SANKAKU, PUSHED)) DR.add_upper_cmd(TABLE_POSITION);
-
-        /* ハンドル把持の処理 */
-        if(Con.readButton(BUTTON_MARU, PUSHED))
+        /* 上半身と連携し，自動制御でない場合 */
+        if(dipsw.getBool(DIP1, ON) && dipsw.getBool(DIP2, OFF))
         {
-            static int hand_count = 0;
-            if((hand_count % 2) == 0) DR.add_upper_cmd(HANDLE);
-            else DR.sub_upper_cmd(HANDLE);
-        }
-        if(upper_cmd & HOLD_HANDLE)
-        {
-            ////////////////////////////////////////////////
-            /* ここに位置制御へ以降する処理を書く */
-            /* 動作確認でない場合はここに展開の処理を書く */
-            ////////////////////////////////////////////////
+            /* 展開の処理 */
+            if(Con.readButton(MASK_BUTTON_PAD) == PUSHED) DR.add_upper_cmd(EXPAND);
+            else DR.sub_upper_cmd(EXPAND);
 
-            DR.add_upper_cmd(SENDING_TABLE_CMD);
-        }
+            /* インナーエリアに進入後にテーブル回転機構を所定の位置に移動させる */
+            if(Con.readButton(MASK_BUTTON_Y) == PUSHED) DR.add_upper_cmd(TABLE_POSITION);
 
-        DR.sendUpperCmd(tableAngle, tableOmega);
+            /* ハンドル把持の処理 */
+            if(Con.readButton(MASK_BUTTON_A) == PUSHED)
+            {
+                static int hand_count = 0;
+                if((hand_count % 2) == 0) DR.add_upper_cmd(HANDLE);
+                else DR.sub_upper_cmd(HANDLE);
+            }
+            if(upper_cmd & HOLD_HANDLE)
+            {
+                ////////////////////////////////////////////////
+                /* ここに位置制御へ以降する処理を書く */
+                /* 動作確認でない場合はここに展開の処理を書く */
+                ////////////////////////////////////////////////
+
+                DR.add_upper_cmd(SENDING_TABLE_CMD);
+            }
+
+            DR.sendUpperCmd(tableAngle, tableOmega);
+        }
     
 
         pid_gain_setting();
@@ -361,6 +368,9 @@ coords getDummyPosition(bool positionSetting)
     }
     else
     {
+        // PIDPosiX.PIDinit(0.0, 0.0);
+        // PIDPosiY.PIDinit(0.0, 0.0);
+        // PIDPosiZ.PIDinit(0.0, 0.0);
         coords DummyPosition;
         DummyPosition.x = position.x - positionOffset.x;
         DummyPosition.y = position.y - positionOffset.y;

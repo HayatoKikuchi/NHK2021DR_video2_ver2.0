@@ -7,7 +7,7 @@ Controller::Controller(){
     conData.RJoyX = 127, conData.RJoyY = 127, conData.LJoyX = 127, conData.LJoyY = 127;
 }
 
-bool Controller::update(){
+void Controller::update(){
   char receive_data[10];
   unsigned int loop_count=0, checksum = 0x00;
   comCheck = false;
@@ -21,8 +21,6 @@ bool Controller::update(){
 
             if(receive_data[7] == checksum & 0xFF){
                 comCheck = true;
-
-                return true;
                 
                 pre_conData.ButtonState = conData.ButtonState;
                 conData.ButtonState = ((receive_data[0] & 0x3F) << 2) | ((receive_data[1] & 0x30) >> 4);
@@ -67,8 +65,6 @@ bool Controller::update(){
                 conData.RJoyY |= (receive_data[7] - 0x20);
                 conData.RJoyY |= ((receive_data[8] - 0x20) & 0x03) << 6;
                 conData.RJoyY = abs(conData.RJoyY - 0xFF);
-
-                return true;
             }
             recv_num = 0;
         }else{
@@ -109,8 +105,6 @@ bool Controller::update(){
                     conData.RJoyY |= (receive_data[7] - 0x20);
                     conData.RJoyY |= ((receive_data[8] - 0x20) & 0x03) << 6;
                     conData.RJoyY = abs(conData.RJoyY - 0xFF);
-
-                    return true;
                 }
             }
             recv_num = 0;
@@ -120,7 +114,6 @@ bool Controller::update(){
         }
     }
 #endif
-    return false;
 }
 
 void Controller::statePrint()

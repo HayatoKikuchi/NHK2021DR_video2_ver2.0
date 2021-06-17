@@ -5,10 +5,10 @@
 #include <string.h>
 #include "LCDclass.h"
 
-#define DIP1    0x01
-#define DIP2    0x02
-#define DIP3    0x04
-#define DIP4    0x08
+#define DIP1    0x01 //上半身と連携した制御（ON）
+#define DIP2    0x02 //自走制御（ON）
+#define DIP3    0x04 //コントローラの値をPID制御にかけたものを移動速度にする（ON）
+#define DIP4    0x08 //PID制御のゲイン調整をする（ON）
 
 #define ON 1
 #define OFF 2

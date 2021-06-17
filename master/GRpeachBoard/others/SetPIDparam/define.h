@@ -9,15 +9,11 @@ struct coords{
     double z;
 };
 
-#define fabs(x) ((x)>0?(x):-(x))
-
-#define SERIAL_PC       Serial
-#define SERIAL_UPPER    Serial0
 #define SERIAL_LPMSME1  Serial1
 #define SERIAL_ROBOCLAW Serial4
-#define SERIAL_LEONARDO Serial5
-#define SERIAL_LCD      Serial6
 #define SERIAL_CON      Serial7
+#define SERIAL_LCD      Serial6
+//#define SERIAL_XBEE     Serial7
 
 #define PIN_XBEERESET 66
 
@@ -27,13 +23,13 @@ struct coords{
 #define PIN_DIP3 69
 #define PIN_DIP4 70
 
-#define PIN_SW_UP    30
-#define PIN_SW_LEFT  31
-#define PIN_SW_RIGHT 33
-#define PIN_SW_DOWN  32
+#define PIN_SW_UP    32
+#define PIN_SW_LEFT  33
+#define PIN_SW_RIGHT 31
+#define PIN_SW_DOWN  30
 
-#define PIN_SW_RED  29
-#define PIN_SW_BLACK 28
+#define PIN_SW_WHITE  29
+#define PIN_SW_YELLOW 28
 
 #define PIN_ENC_A  26
 #define PIN_ENC_B  27
@@ -59,28 +55,28 @@ struct coords{
 // >>> ManualControlで使用 >>>>>>>>>>>>>>>>>>
 #define JOY_DEADBAND    ( 2 )
 #define JOY_MAXVEL      ( 1.0 )
-#define JOY_MAXANGVEL   ( radians(120.0) )
-#define MANUAL_LOWPASS_T  ( 0.25 )
+#define JOY_MAXANGVEL   ( 2.5 )
+#define MANUAL_LOWPASS_T  ( 0.05 )
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 // >>> PathTrackingで使用 >>>>>>>>>>>>>>>>>>
-#define POSI_X_KP    ( 0.5 )
+#define POSI_X_KP    ( 2.5 )
 #define POSI_X_KI    ( 0.0 )
-#define POSI_X_KD    ( 0.0 )
+#define POSI_X_KD    ( 5.0 )
 
-#define POSI_Y_KP    ( 0.5 )
+#define POSI_Y_KP    ( 3.0 )
 #define POSI_Y_KI    ( 0.0 )
-#define POSI_Y_KD    ( 0.0 )
+#define POSI_Y_KD    ( 2.0 )
 
-#define POSI_Z_KP    ( 0.5 )
+#define POSI_Z_KP    ( 4.0 )
 #define POSI_Z_KI    ( 0.0 )
 #define POSI_Z_KD    ( 0.0 )
 
-#define YOKOZURE_KP    ( 0.5 )
+#define YOKOZURE_KP    ( 3.0 )
 #define YOKOZURE_KI    ( 0.0 )
-#define YOKOZURE_KD    ( 0.0 )
+#define YOKOZURE_KD    ( 1.5 )
 
-#define KAKUDO_KP    ( 0.5 )
+#define KAKUDO_KP    ( 4.0 )
 #define KAKUDO_KI    ( 0.0 )
 #define KAKUDO_KD    ( 0.0 )
 
@@ -132,22 +128,9 @@ struct coords{
     #define _2RES_PI (2.0 * 1024.0 / 3.141592 ) //  [rad/s]からRoboClawの指令値[pulses/s]に変換するための定数(1024はエンコーダ分解能) 4逓倍しているが，分母は元は2*piで，通分されている
 #endif
 
-// ロボットの移動速度のPID制御
-#define VEL_X_KP    ( 0.5 )
-#define VEL_X_KI    ( 0.0 )
-#define VEL_X_KD    ( 0.0 )
-
-#define VEL_Y_KP    ( 0.5 )
-#define VEL_Y_KI    ( 0.0 )
-#define VEL_Y_KD    ( 0.0 )
-
-#define VEL_Z_KP    ( 0.5 )
-#define VEL_Z_KI    ( 0.0 )
-#define VEL_Z_KD    ( 0.0 )
-
 // RoboClaw関連
-#define ADR_MD1             ( 129 )
-#define ADR_MD2             ( 130 )
+#define ADR_MD1             ( 130 )
+#define ADR_MD2             ( 129 )
 
 // 自己位置推定用エンコーダ関連
 #define _2PI_RES4   ( 2 * 3.141592 / 800 ) // res = 200 分母は res*4
@@ -159,12 +142,6 @@ struct coords{
 #define CON_ADACHI    ( 0 )
 #define CON_ELECOM    ( 1 )
 #define CON_DS4       ( 2 )
-
-#define PUSHE 1
-#define RELEASE 0
-#define PUSHED 2
-#define RELEASED -1
-
 
 #define CON_TYPE  ( CON_DS4 )
 
@@ -187,10 +164,10 @@ struct coords{
     #define BUTTON_L1    7
     #define BUTTON_L2    8
 #elif CON_TYPE == CON_ELECOM || CON_TYPE == CON_DS4
-    #define MASK_BUTTON_X  0x0001 //□
-    #define MASK_BUTTON_Y  0x0002 //△
-    #define MASK_BUTTON_A  0x0004 //×
-    #define MASK_BUTTON_B  0x0008 //〇
+    #define MASK_BUTTON_X  0x0001
+    #define MASK_BUTTON_Y  0x0002
+    #define MASK_BUTTON_A  0x0004
+    #define MASK_BUTTON_B  0x0008
 
     #define MASK_BUTTON_L1     0x0010
     #define MASK_BUTTON_R1     0x0020
