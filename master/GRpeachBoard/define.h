@@ -1,3 +1,5 @@
+// NHK学生ロボコン2021DR足回りで使用するdefine.h
+
 #ifndef DEFINE_h
 #define DEFINE_h
 
