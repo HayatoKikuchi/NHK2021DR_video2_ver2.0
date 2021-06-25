@@ -42,6 +42,8 @@ public:
     void sendUpperCmd(double refAngle = 0.0, double refOmega = 0.0);
     void updateUpperCmd(unsigned int *cmd);
 
+    unsigned int upper_cmd;
+
 private:
     HardwareSerial *upper;
     
@@ -51,7 +53,7 @@ private:
     unsigned int sendData[7];
     unsigned int reciveData[4];
 
-    unsigned int upper_cmd, pre_upper_cmd;
+    unsigned int /*upper_cmd,*/ pre_upper_cmd;
 };
 
 #endif

@@ -112,11 +112,12 @@ void AutoControl::setMaxPathnum(int pathNum){
 coords AutoControl::getRefVel(unsigned int swState){
     coords refV = {0.0, 0.0, 0.0};
     static unsigned int pre_swState = swState;
-
-    // Edit here >>>>>
-    // <<<<<
-    if(0){
-
+    static int auto_phase = 0;
+    if(swState == 1) auto_phase++;
+    
+    if(auto_phase == 1)
+    {
+        refV = AutoControl::pathTrackingMode(FOLLOW_COMMAND, 0,0);
     }
     else{
         refV = commandMode_vel(0.0, 0.0, 0.0); // 該当しない場合はとりあえず速度ゼロ

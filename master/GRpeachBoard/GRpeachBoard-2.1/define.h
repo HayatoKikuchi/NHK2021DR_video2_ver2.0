@@ -55,7 +55,7 @@ struct coords{
 // >>> ManualControlで使用 >>>>>>>>>>>>>>>>>>
 #define JOY_DEADBAND    ( 2 )
 #define JOY_MAXVEL      ( 1.0 )
-#define JOY_MAXANGVEL   ( 2.5 )
+#define JOY_MAXANGVEL   ( 1.0 )
 #define MANUAL_LOWPASS_T  ( 0.05 )
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 

@@ -2,6 +2,7 @@
 #include <MsTimer2.h>
 #include "RoboClaw.h"
 
+#include "AutoControl.h"
 #include "Button.h"
 #include "Controller.h"
 #include "define.h"
@@ -13,16 +14,19 @@
 #include "Platform.h"
 #include "PIDclass.h"
 #include "Setting.h"
+#include "SDclass.h"
 
-Platform mechanum;
 
+AutoControl Auto;
+Controller Con;
 lpms_me1 lpms(&SERIAL_LPMSME1);
 phaseCounter encX(1);
 phaseCounter encY(2);
-Controller Con;
+Platform mechanum;
 ManualControl ManuCon;
 Operator DR(&SERIAL_UPPER);
 myLCDclass lcd(&SERIAL_LCD);
+mySDclass mySD;
 
 Encorder enc;
 DipSW dipsw;
@@ -72,11 +76,6 @@ int setting_num = SET_MAXVELOMEGA;
 unsigned int upper_cmd = 0;
 double tableAngle = 0, tableOmega = 0; //値は[度]
 
-/* コントローラの受信と確認のLチカを行う関数 */
-void controller_update()
-{
-    Con.update();
-}
 
 /* ロボットの移動速度を得る関数 */
 coords getRobotVelocity()
@@ -105,6 +104,14 @@ void timer_warikomi()
 
     DR.RGB_led(2); //フルカラーLEDを光らせる
 
+    /* スイッチのチャタリング対策 */
+    dipsw_state = dipsw.getDipState();
+    sw_red = SW_RED.button_fall();
+    sw_black = SW_BLACK.button_fall();
+    sw_up = SW_UP.button_fall();
+    sw_down = SW_DOWN.button_fall();
+    sw_right = SW_LEFT.button_fall();
+
     /* 自己位置およびロボットの移動速度の取得処理 */
     int encX_count = encX.getCount();
     int encY_count = encY.getCount();
@@ -118,11 +125,12 @@ void timer_warikomi()
     bool flag_setting = (SETPOSI_X <= setting_num) && (setting_num <= SETPOSI_Z); //位置PIDのゲイン調整をしている場合はtrue
     dummyPosition = getDummyPosition(flag_setting); //位置PID制御のゲイン調整を開始したら仮の原点を得る
 
-    if(dipsw.getBool(DIP3,ON) || dipsw.getBool(DIP4,ON))
+    if(dipsw.getBool(DIP3,ON))
     {
         coords rawVel;
-        if(flag_setting) //ゲイン調整が位置PID制御の場合
+        if(flag_setting && dipsw.getBool(DIP4,ON)) //ゲイン調整が位置PID制御の場合
         {
+            
             rawVel.x = PIDPosiX.getCmd(refPosition.x, dummyPosition.x, C_vel.x*JOY_MAXVEL);
             rawVel.y = PIDPosiY.getCmd(refPosition.y, dummyPosition.y, C_vel.y*JOY_MAXVEL);
             rawVel.z = PIDPosiZ.getCmd(refPosition.z, dummyPosition.z, C_vel.z*JOY_MAXANGVEL);
@@ -132,9 +140,9 @@ void timer_warikomi()
             rawVel = conVel; //コントローラの値が速度制御の目標速度
         }
         //速度PID制御を行う
-        refVel.x = PIDvelX.getCmd(C_vel.x*rawVel.x, velocity.x, C_vel.x*(JOY_MAXVEL*1.1));
-        refVel.y = PIDvelY.getCmd(C_vel.y*rawVel.y, velocity.y, C_vel.y*(JOY_MAXVEL*1.1));
-        refVel.z = PIDvelZ.getCmd(C_vel.z*rawVel.z, velocity.z, C_vel.z*(JOY_MAXANGVEL*1.1));
+        refVel.x = PIDvelX.getCmd(C_vel.x*rawVel.x, velocity.x, C_vel.x*(JOY_MAXVEL));
+        refVel.y = PIDvelY.getCmd(C_vel.y*rawVel.y, velocity.y, C_vel.y*(JOY_MAXVEL));
+        refVel.z = PIDvelZ.getCmd(C_vel.z*rawVel.z, velocity.z, C_vel.z*(JOY_MAXANGVEL));
     }
     else
     {
@@ -149,6 +157,7 @@ void timer_warikomi()
 
 void setup()
 {   
+    delay(1000);
     SERIAL_PC.begin(115200);
     SERIAL_LCD.begin(115200);
     SERIAL_UPPER.begin(115200);
@@ -163,7 +172,16 @@ void setup()
     lcd.write_line("      For           ", LINE_2);
     lcd.write_line("      GR-SAKURA     ", LINE_3);
 
-    bool ready_to_start = false; 
+    /* 軌道追従関連の初期化 */
+    // mySD.init();
+    // int actpathnum = Auto.init(&mySD, BLUE); //SDカードから各値を取得，戻り値はパスの数
+    // Auto.gPosiInit();
+    // Auto.initSettings(); // これをやっていないと足回りの指令速度生成しない
+    // Auto.setConvPara(0.02, 0.997); // 初期化
+    // Auto.setMaxPathnum(actpathnum); // パス数の最大値
+
+    bool ready_to_start = false;
+    
     while (!ready_to_start)
     {
         DR.updateUpperCmd(&upper_cmd);
@@ -174,14 +192,12 @@ void setup()
         
         delay(10);
     }
-
+    
     DR.LEDblink(PIN_LED_BLUE, 3 , 100); //GR-SAKURAの受信確認
     
     lcd.clear_display();
-    lcd.write_line("    Setting Time    ", LINE_1);
-    lcd.write_line("        |  |        ", LINE_2);
-    lcd.write_line("        |  |        ", LINE_3);
-    lcd.write_line("===PUSH BUTTON_PS===", LINE_4);
+    lcd.write_line("    Setting Time    ", LINE_2);
+    lcd.write_line("   PUSH BUTTON_PS   ", LINE_3);
 
     /* PID制御のゲイン調整のクラスを初期化 */
     settingVx.init(VEL_X_KP, VEL_X_KI, VEL_X_KD, "velocity.x PID");
@@ -247,14 +263,9 @@ void loop()
         DR.updateUpperCmd(&upper_cmd); //上半身との通信
 
         /* ボタンの処理（10ms周期でチャタリング対策） */
-        dipsw_state = dipsw.getDipState();
-        sw_red = SW_RED.button_fall();
-        sw_black = SW_BLACK.button_fall();
-        sw_up = SW_UP.button_fall();
-        sw_down = SW_DOWN.button_fall();
-        sw_right = SW_LEFT.button_fall();
 
         /* 上半身と連携し，自動制御でない場合 */
+        
         if(dipsw.getBool(DIP1, ON) && dipsw.getBool(DIP2, OFF))
         {
             /* 展開の処理 */
@@ -283,14 +294,17 @@ void loop()
 
             DR.sendUpperCmd(tableAngle, tableOmega);
         }
-    
+        /* 上半身と連携し，自動制御の場合 */
+        else if(dipsw.getBool(DIP1, ON) && dipsw.getBool(DIP2, ON))
+        {
 
-        pid_gain_setting();
+        }
+
 
         flag_10ms = false;
     }
     
-    
+    pid_gain_setting();
 
     if (flag_500ms)
     {
@@ -325,7 +339,7 @@ void pid_gain_setting()
     if(sw_right)
     {
       setting_num++;
-      if(SETTINGNUM + 1 <= setting_num) setting_num = 1;
+      if((SETTINGNUM + 1) <= setting_num) setting_num = 1;
     }
     else if(sw_left)
     {
@@ -333,7 +347,8 @@ void pid_gain_setting()
       if(setting_num <= 0) setting_num = SETTINGNUM;
     }
     
-    if(setting_num == 1 && flag_500ms) lcd.clear_display();
+    if((setting_num == 1) && flag_500ms) lcd.clear_display();
+
     /* エンコーダを用いてPID制御のゲイン調整をする */
     settingVx.task(flag_500ms, sw_up, sw_down, setting_num);
     settingVy.task(flag_500ms, sw_up, sw_down, setting_num);
@@ -350,6 +365,18 @@ void pid_gain_setting()
     PIDPosiY.setPara(settingPy.getKp(), settingPy.getKi(), settingPy.getKd());
     PIDPosiZ.setPara(settingPz.getKp(), settingPz.getKi(), settingPz.getKd());
 
+
+    SERIAL_PC.print(setting_num);
+    SERIAL_PC.print("\t");
+    SERIAL_PC.print(sw_up);
+    SERIAL_PC.print("\t");
+    SERIAL_PC.print(sw_down);
+    SERIAL_PC.print("\t");
+    SERIAL_PC.print(sw_right);
+    SERIAL_PC.print("\t");
+    SERIAL_PC.print(sw_left);
+    SERIAL_PC.print("\");
+
   }
   else
   {
@@ -357,24 +384,77 @@ void pid_gain_setting()
   }
 }
 
+coords getRefPosition(bool buttonPosiPush, bool buttonAnglePush, bool init_ref = false)
+{
+    coords ref;
+    static int phase_posi = 1, phase_angle = 0;
+    if(buttonPosiPush) phase_posi++;
+
+    if(init_ref)
+    {
+        phase_posi = 1;
+        refPosition.z = ref.z = position.z;
+    }
+
+    if(buttonAnglePush) 
+    { 
+        phase_angle++;
+        switch (phase_angle)
+        {
+        case 1:
+        case 2: 
+            ref.z += radians(90.0);
+            break;
+        case 3:
+        case 4:
+            ref.z -= radians(90.0);
+            phase_angle = 0;
+            break;
+        default:
+            break;
+        }
+    }
+    
+    switch (phase_posi)
+    {
+    case 1: ref = {0.0, 0.0, ref.z}; break;
+    case 2: ref = {0.5, 0.0, ref.z}; break;
+    case 3: ref = {0.5, 0.5, ref.z}; break;
+    case 4: ref = {0.0, 0.5, ref.z}; break;
+    default: phase_posi = 1; break;
+    }
+}
+
 /* 位置PID制御のゲイン調整を開始したら，その場所を仮の原点とする関数（Z軸は変更しない） */
 coords getDummyPosition(bool positionSetting)
 {
     static coords positionOffset = {0.0, 0.0, radians(0.0)};
+    static bool do_once = true;
+    
     if(!positionSetting)
     {
+        do_once = true;
         positionOffset = position;
         return position;
     }
     else
     {
-        // PIDPosiX.PIDinit(0.0, 0.0);
-        // PIDPosiY.PIDinit(0.0, 0.0);
-        // PIDPosiZ.PIDinit(0.0, 0.0);
         coords DummyPosition;
         DummyPosition.x = position.x - positionOffset.x;
         DummyPosition.y = position.y - positionOffset.y;
         DummyPosition.z = position.z;
+
+        if(do_once)
+        {
+            PIDPosiX.PIDinit(DummyPosition.x, DummyPosition.x);
+            PIDPosiY.PIDinit(DummyPosition.y, DummyPosition.y);
+            PIDPosiZ.PIDinit(DummyPosition.z, DummyPosition.z);
+
+            refPosition = getRefPosition(false, false, true);
+
+            do_once = false;
+        }
+
         return DummyPosition;
     }
 }

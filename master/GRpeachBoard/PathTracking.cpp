@@ -181,7 +181,7 @@ int PathTracking::calcRefvel(){
                         mode_changed = false;
                     }
                     refKakudo = kakudo_filter.SecondOrderLag(refangle[path_num]);
-                    refVrot = kakudoPID.getCmd(refKakudo, gPosi.z, 1.57);
+                    refVrot = kakudoPID.getCmd(refKakudo, gPosi.z, JOY_MAXANGVEL);
                 }
 
                 per = refVper;

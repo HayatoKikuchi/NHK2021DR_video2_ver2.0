@@ -1,5 +1,4 @@
 #include "Setting.h"
-#include "define.h"
 
 Encorder::Encorder(double _fluctuation){
     fluctuation = _fluctuation;
@@ -13,14 +12,17 @@ Encorder::Encorder(double _fluctuation){
     enc_count = 0;
 }
 
-DipSW::DipSW(){
-    pinMode(PIN_DIP1,INPUT);
-    pinMode(PIN_DIP2,INPUT);
-    pinMode(PIN_DIP3,INPUT);
-    pinMode(PIN_DIP4,INPUT);
+DipSW::DipSW()
+{
+  pinMode(PIN_DIP1, INPUT);
+  pinMode(PIN_DIP2, INPUT);
+  pinMode(PIN_DIP3, INPUT);
+  pinMode(PIN_DIP4, INPUT);
+  preDip1State = preDip2State = preDip3State = preDip4State = 1;
 }
 
-int DipSW::getDipState(){
+int DipSW::getDipState()
+{
     dipNum = 0;
     if(!digitalRead(PIN_DIP1)) dipNum |= 0x01;
     if(!digitalRead(PIN_DIP2)) dipNum |= 0x02;
@@ -28,6 +30,62 @@ int DipSW::getDipState(){
     if(!digitalRead(PIN_DIP4)) dipNum |= 0x08;
 
     return dipNum;
+}
+
+bool DipSW::ChangeToOn(byte pin)
+{
+  int dipState = digitalRead(pin);
+  
+  switch (pin)
+  {
+  case PIN_DIP1:
+    return (preDip1State > dipState);
+    preDip1State = dipState;
+    break;
+  case PIN_DIP2:
+    return (preDip2State > dipState);
+    preDip2State = dipState;
+    break;
+  case PIN_DIP3:
+    return (preDip3State > dipState);
+    preDip3State = dipState;
+    break;
+  case PIN_DIP4:
+    return (preDip4State > dipState);
+    preDip4State = dipState;
+    break;
+  default:
+    return false;
+    break;
+  }
+}
+
+bool DipSW::ChangeToOff(byte pin)
+{
+  int dipState = digitalRead(pin);
+  
+  switch (pin)
+  {
+  case PIN_DIP1:
+    return (preDip1State < dipState);
+    preDip1State = dipState;
+    break;
+  case PIN_DIP2:
+    return (preDip2State < dipState);
+    preDip2State = dipState;
+    break;
+  case PIN_DIP3:
+    return (preDip3State < dipState);
+    preDip3State = dipState;
+    break;
+  case PIN_DIP4:
+    return (preDip4State < dipState);
+    preDip4State = dipState;
+    break;
+  default:
+    return false;
+    break;
+  }
 }
 
 PIDsetting::PIDsetting(myLCDclass *_LCD, Encorder *_encorder, int _setting)
@@ -91,7 +149,7 @@ void PIDsetting::task(bool flag_500ms,bool up, bool down, int setting_num)
   static bool init_kp, init_ki, init_kd;
   static double printnum = 0;
   
-  if(setting_num == setting && init_done)
+  if((setting_num == setting) && init_done)
   {
     if(flag_lcd)
     { 

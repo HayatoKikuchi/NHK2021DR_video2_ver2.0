@@ -3,10 +3,11 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include "define.h"
 #include "LCDclass.h"
 
 #define DIP1    0x01 //上半身と連携した制御（ON）
-#define DIP2    0x02 //自走制御（ON）
+#define DIP2    0x02 //自動制御（ON）
 #define DIP3    0x04 //コントローラの値をPID制御にかけたものを移動速度にする（ON）
 #define DIP4    0x08 //PID制御のゲイン調整をする（ON）
 
@@ -39,8 +40,13 @@ class DipSW{
   * 
   */
   bool getBool(int one_dip, int on_or_off);
+  bool ChangeToOn(byte pin);
+  bool ChangeToOff(byte pin);
 
   private:
+
+  int preDip1State, preDip2State, preDip3State, preDip4State;
+
   int dipNum;
 };
 

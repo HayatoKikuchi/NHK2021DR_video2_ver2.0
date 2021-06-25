@@ -13,30 +13,30 @@ struct coords
 
 /* シリアル通信の定義 */
 #define SERIAL_PC       Serial
-#define SERIAL_ROBOCLAW Serial1 //ダミー
-#define SERIAL_MASTER   Serial2 //ダミー
-#define SERIAL_CON      Serial3 //ダミー
+#define SERIAL_ROBOCLAW Serial1
+#define SERIAL_MASTER   Serial2
+#define SERIAL_CON      Serial3
 
 /* 入力ピンの定義 */
-#define PIN_DIP1 36 //ダミー
-#define PIN_DIP2 37 //ダミー
-#define PIN_DIP3 38 //ダミー
-#define PIN_DIP4 39 //ダミー
+#define PIN_DIP1 43
+#define PIN_DIP2 42
+#define PIN_DIP3 41
+#define PIN_DIP4 40
 
 #define PIN_M1_ORIGIN 44 //ダミー
 #define PIN_M2_ORIGIN 45 //ダミー
 
-#define PIN_SW1 46 //ダミー
-#define PIN_SW2 47 //ダミー
+#define PIN_SW1 39
+#define PIN_SW2 38
 
 /* 出力ピンの定義 */
-#define PIN_EXPAND 40 //ダミー
-#define PIN_HAND 41 //ダミー
+#define PIN_EXPAND  39 //ダミー
+#define PIN_HAND    38 //ダミー
 
-#define PIN_LED_1 30 //ダミー
-#define PIN_LED_2 31 //ダミー
-#define PIN_LED_3 32 //ダミー
-#define PIN_LED_4 33 //ダミー
+#define PIN_LED_1 30
+#define PIN_LED_2 31
+#define PIN_LED_3 32
+#define PIN_LED_4 33
 
 /* 出力の定義 */
 #define LED_OLL_LOW  0b0000

@@ -34,8 +34,8 @@ struct coords{
 #define PIN_SW_RIGHT 33
 #define PIN_SW_DOWN  32
 
-#define PIN_SW_RED  29
-#define PIN_SW_BLACK 28
+#define PIN_SW_RED  28
+#define PIN_SW_BLACK 29
 
 #define PIN_ENC_A  26
 #define PIN_ENC_B  27
