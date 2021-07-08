@@ -83,7 +83,9 @@ void Operator::sendUpperCmd(double refAngle, double refOmega)
   pre_upper_cmd = Operator::upper_cmd;
 
   if(refAngle < 0) Operator::add_upper_cmd(TABLE_POSI_NEGATIVE); //変数の正負を情報を格納
+  else Operator::sub_upper_cmd(TABLE_POSI_NEGATIVE);
   if(refOmega < 0) Operator::add_upper_cmd(TABLE_OMEGA_NEGATIVE); //変数の正負の情報を格納
+  else Operator::sub_upper_cmd(TABLE_OMEGA_NEGATIVE);
 
   double sendAngle, sendOmega;
   sendAngle = fabs((unsigned int)refAngle)*10.0; // 1/10の位まで
@@ -95,13 +97,11 @@ void Operator::sendUpperCmd(double refAngle, double refOmega)
   sendData[3] = 0; //reserved
   sendData[5] = END_BYTE;
 
-  if(Operator::pre_upper_cmd != Operator::upper_cmd) //コマンドが変更しときにだけ送信
-  {
-    for (int i = 0; i < SENDDATANUM; i++)
-    {
-      upper->write(sendData[i]);
-    }
-  }
+  //if(Operator::pre_upper_cmd != Operator::upper_cmd) //コマンドが変更しときにだけ送信
+  //{
+    for (int i = 0; i < SENDDATANUM; i++) upper->write(sendData[i]);
+    //SERIAL_PC.println("!!");
+  //}
 }
 
 void Operator::updateUpperCmd(unsigned int *cmd)
