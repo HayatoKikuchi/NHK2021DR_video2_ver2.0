@@ -13,9 +13,9 @@ struct coords
 
 /* シリアル通信の定義 */
 #define SERIAL_PC       Serial
-#define SERIAL_ROBOCLAW Serial0
+#define SERIAL_ROBOCLAW Serial5
 #define SERIAL_MASTER   Serial6
-#define SERIAL_CON      Serial5
+#define SERIAL_CON      Serial0
 
 /* 入力ピンの定義 */
 #define PIN_DIP1 29
@@ -48,10 +48,10 @@ struct coords
 #define PIN_FET_INDEX_1 38
 #define PIN_FET_INDEX_2 39
 
-#define PIN_LED_1 30
-#define PIN_LED_2 31
-#define PIN_LED_3 32
-#define PIN_LED_4 33
+#define PIN_LED_1 33
+#define PIN_LED_2 32
+#define PIN_LED_3 31
+#define PIN_LED_4 30
 
 /* 出力の定義 */
 #define LED_OLL_LOW  0b0000

@@ -26,7 +26,7 @@ void Master::sendMasterCmd()
 {
     Master::pre_master_cmd = Master::master_cmd;
 
-    sendData[0] = (uint8_t)Master::master_cmd;
+    sendData[0] = (uint8_t)master_cmd;
     sendData[1] = 0; //reserved
     sendData[2] = (sendData[0] ^ sendData[1]);
     sendData[3] = END_BYTE;

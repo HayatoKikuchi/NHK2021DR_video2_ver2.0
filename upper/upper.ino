@@ -179,13 +179,13 @@ void setup()
         }
         else if(uppperMode == MODE_MASTER) 
         {
-            master.updateMasterCmd(&masterCmd, &tableAnlge, &tableOmega);
+            //master.updateMasterCmd(&masterCmd, &tableAnlge, &tableOmega);
             
-            SERIAL_PC.print(masterCmd);
-            SERIAL_PC.print("\t");
-            SERIAL_PC.print(tableAnlge);
-            SERIAL_PC.print("\t");
-            SERIAL_PC.println(tableOmega);
+            // SERIAL_PC.print(masterCmd);
+            // SERIAL_PC.print("\t");
+            // SERIAL_PC.print(tableAnlge);
+            // SERIAL_PC.print("\t");
+            // SERIAL_PC.println(tableOmega);
 
             if(SW1.button_fall() && setup_phase < SET_PHASE4) setup_phase++;
             if(!table_setup) setup_phase = SET_PHASE2;
@@ -195,6 +195,7 @@ void setup()
         switch (setup_phase)
         {
         case SET_PHASE1:
+            SERIAL_PC.println("phase1");
             /* ここで人間がロボットのセッティングを行う． */
             static bool master_recv = false;
 
@@ -220,6 +221,7 @@ void setup()
             break;
 
         case SET_PHASE2:
+            SERIAL_PC.println("phase2");
 
             static int table_pahse = 1; // 1：直動，2：回転
 
@@ -235,7 +237,7 @@ void setup()
             else if(!digitalRead(PIN_M2_ORIGIN) || (countUserSW == 1))
             {
                 MD.ForwardM1(ADR_MD1, 0);
-                MD.SetEncM1(ADR_MD1, SET_ENC_M2);
+                //MD.SetEncM1(ADR_MD1, SET_ENC_M2);
                 table_pahse = 2;
                 delay(500);
             }
@@ -248,7 +250,7 @@ void setup()
             else if(!digitalRead(PIN_M1_ORIGIN) || (countUserSW == 2))
             {
                 MD.ForwardM1(ADR_MD1, 0);
-                MD.SetEncM1(ADR_MD1, SET_ENC_M1);
+                //MD.SetEncM1(ADR_MD1, SET_ENC_M1);
                 delay(500); 
                 table_setup = true;
             }
@@ -256,6 +258,7 @@ void setup()
             break;
         
         case SET_PHASE3:
+            SERIAL_PC.println("phase3");
             /* テーブル回転機構を所定の位置に合わせる */
             if(flag_led) BoardLED(LED3_HIGH);
             else BoardLED(LED_OLL_LOW);
@@ -278,7 +281,11 @@ void setup()
                     slide_posi = getSlideNum(MD.ReadEncM2(ADR_MD2));
                 }
 
-                if(turn_posi > TURN_FIRST_POINT && slide_posi > SLIDE_FIRST_POINT) table_standby = true;
+                if(turn_posi > TURN_FIRST_POINT && slide_posi > SLIDE_FIRST_POINT)
+                {
+                    table_standby = true;
+                    setup_phase = SET_PHASE4;
+                }
 
                 time_count = 0; 
             }
@@ -286,6 +293,7 @@ void setup()
             break;
 
         case SET_PHASE4:
+            SERIAL_PC.println("phase4");
             /* コントローラの処理待ち */
             BoardLED(LED_OLL_HIGH);
 
