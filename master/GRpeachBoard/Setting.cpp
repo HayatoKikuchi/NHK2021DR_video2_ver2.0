@@ -134,19 +134,18 @@ void Encorder::setFluctuation(double setnum)
     fluctuation = setnum;
 }
 
-void PIDsetting::init(double _kp, double _ki, double _kd, char _moji[])
+void PIDsetting::init(double _kp, double _ki, double _kd)
 {
   kp = _kp;
   ki = _ki;
   kd = _kd;
-  strcpy(moji,_moji);
   init_done = true;
 }
 
-void PIDsetting::task(bool flag_500ms,bool up, bool down, int setting_num)
+void PIDsetting::task(String moji, bool flag_500ms,bool up, bool down, int setting_num)
 {
-  static int pid_setting_mode;
-  static bool init_kp, init_ki, init_kd;
+  static int pid_setting_mode = 0;
+  static bool init_kp = false, init_ki = false, init_kd = false;
   static double printnum = 0;
   
   if((setting_num == setting) && init_done)

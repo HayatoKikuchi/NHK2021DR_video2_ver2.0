@@ -13,30 +13,45 @@ struct coords
 
 /* シリアル通信の定義 */
 #define SERIAL_PC       Serial
-#define SERIAL_ROBOCLAW Serial1
-#define SERIAL_MASTER   Serial2
-#define SERIAL_CON      Serial3
+#define SERIAL_ROBOCLAW Serial0
+#define SERIAL_MASTER   Serial6
+#define SERIAL_CON      Serial5
 
 /* 入力ピンの定義 */
-#define PIN_DIP1 43
-#define PIN_DIP2 42
-#define PIN_DIP3 41
-#define PIN_DIP4 40
+#define PIN_DIP1 29
+#define PIN_DIP2 28
+#define PIN_DIP3 27
+#define PIN_DIP4 26
 
-#define PIN_M1_ORIGIN 44 //ダミー
-#define PIN_M2_ORIGIN 45 //ダミー
+#define PIN_M1_ORIGIN 17
+#define PIN_M2_ORIGIN 18
+#define PIN_M3_ORIGIN 19
 
-#define PIN_SW1 39
-#define PIN_SW2 38
+#define PIN_LIMIT_1 41
+#define PIN_LIMIT_2 40
+
+#define PIN_SW1 43
+#define PIN_SW2 42
+
+#define PIN_INDEX_1 13
+#define PIN_INDEX_2 4
+#define PIN_INDEX_3 12
+#define PIN_INDEX_4 5
+#define PIN_INDEX_5 11
+#define PIN_INDEX_6 8
+#define PIN_INDEX_7 10
+#define PIN_INDEX_8 9
 
 /* 出力ピンの定義 */
-#define PIN_EXPAND  39 //ダミー
-#define PIN_HAND    38 //ダミー
+#define PIN_EXPAND  36
+#define PIN_HAND    37
+#define PIN_FET_INDEX_1 38
+#define PIN_FET_INDEX_2 39
 
-#define PIN_LED_1 30
-#define PIN_LED_2 31
-#define PIN_LED_3 32
-#define PIN_LED_4 33
+#define PIN_LED_1 33
+#define PIN_LED_2 32
+#define PIN_LED_3 31
+#define PIN_LED_4 30
 
 /* 出力の定義 */
 #define LED_OLL_LOW  0b0000
@@ -57,8 +72,8 @@ struct coords
 #define SET_PHASE4 4 //全てのセッティングが終わったため，処理開始まち
 
 /* テーブル回転機構の位置に関する定義 */
-#define TURN_FIRST_POINT 0.0 // 0.0m
-#define SLIDE_FIRST_POINT 0.0 // 0.0度
+#define TURN_FIRST_POINT 30.0 // 30.0度
+#define SLIDE_FIRST_POINT 0.2 // 0.2m
 
 /* モータドライバに関する定義 */
 #define ADR_MD1 128

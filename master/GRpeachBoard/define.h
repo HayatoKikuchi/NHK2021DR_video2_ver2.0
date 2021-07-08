@@ -169,7 +169,7 @@ struct coords{
 
 
 #define CON_TYPE  ( CON_DS4 )
-
+/*
 #if CON_TYPE == CON_ADACHI
     #define MASK_BUTTON_UP    0x01
     #define MASK_BUTTON_RIGHT 0x02
@@ -191,8 +191,8 @@ struct coords{
 #elif CON_TYPE == CON_ELECOM || CON_TYPE == CON_DS4
     #define MASK_BUTTON_X  0x0001 //□
     #define MASK_BUTTON_Y  0x0002 //△
-    #define MASK_BUTTON_A  0x0004 //×
-    #define MASK_BUTTON_B  0x0008 //〇
+    #define MASK_BUTTON_A  0x0004 //〇
+    #define MASK_BUTTON_B  0x0008 //×
 
     #define MASK_BUTTON_L1     0x0010
     #define MASK_BUTTON_R1     0x0020
@@ -221,5 +221,5 @@ struct coords{
     #define BUTTON_L2    6
 #endif
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
+*/
 #endif

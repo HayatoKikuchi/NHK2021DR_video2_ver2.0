@@ -80,6 +80,7 @@ bool Controller::update(){
     // コントローラデータを取得する部分
     static int recv_num = 0;
     char c;
+    pre_conData.ButtonState = conData.ButtonState; // 立下り，立ち上がりの検知用にも必要
     while(SERIAL_CON.available()){
         c = SERIAL_CON.read();
         if(c == '\n'){
@@ -87,7 +88,6 @@ bool Controller::update(){
                 checksum = 0;
                 for(int i = 0; i < 9; i++) checksum += (unsigned int)(receive_data[i] - 0x20); // チェックサムの計算
                 if((checksum & 0x3F) == (receive_data[9] - 0x20)){ // チェックサムの計算が合っていた場合のみ値を格納
-                    pre_conData.ButtonState = conData.ButtonState; // 立下り，立ち上がりの検知用にも必要
 
                     conData.ButtonState = 0, conData.LJoyX = 0, conData.LJoyY = 0, conData.RJoyX = 0, conData.RJoyY = 0;
                     conData.ButtonState |= receive_data[0] - 0x20;

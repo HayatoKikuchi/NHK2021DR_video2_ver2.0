@@ -2,7 +2,6 @@
 #define _SETTING_H_INCLUDED
 
 #include <Arduino.h>
-#include <string.h>
 #include "define.h"
 #include "LCDclass.h"
 
@@ -90,7 +89,7 @@ public:
     void init_variable();
     
     /* PID制御のゲインを初期化 */
-    void init(double _kp, double _ki, double _kd, char _moji[]);
+    void init(double _kp, double _ki, double _kd);
 
     /*
     * PID制御のゲイン調整を行う．
@@ -100,7 +99,7 @@ public:
     * @param down オンボードの下ボタン
     * @param setting_num 定義された番号
     */
-    void task(bool flag_display,bool up, bool down,int setting_num);
+    void task(String moji ,bool flag_display,bool up, bool down,int setting_num);
 
     double getKp(void);
     double getKi(void);
@@ -111,7 +110,6 @@ private:
     myLCDclass *LCD;
     Encorder *encorder;
     
-    char moji[];
     bool flag_lcd;
     bool init_done;
     int setting;

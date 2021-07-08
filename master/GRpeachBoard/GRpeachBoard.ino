@@ -4,7 +4,7 @@
 
 #include "AutoControl.h"
 #include "Button.h"
-#include "Controller.h"
+#include "DualShock4.h" //#include "Controller.h"
 #include "define.h"
 #include "LCDclass.h"
 #include "lpms_me1Peach.h"
@@ -18,7 +18,7 @@
 
 
 AutoControl Auto;
-Controller Con;
+DualSchok4 Con(&SERIAL_CON); //Controller Con;
 lpms_me1 lpms(&SERIAL_LPMSME1);
 phaseCounter encX(1);
 phaseCounter encY(2);
@@ -110,17 +110,20 @@ void timer_warikomi()
     sw_black = SW_BLACK.button_fall();
     sw_up = SW_UP.button_fall();
     sw_down = SW_DOWN.button_fall();
-    sw_right = SW_LEFT.button_fall();
+    sw_right = SW_RIGHT.button_fall();
+    sw_left = SW_LEFT.button_fall();
 
     /* 自己位置およびロボットの移動速度の取得処理 */
     int encX_count = encX.getCount();
     int encY_count = encY.getCount();
     double Z_angle = lpms.get_z_angle();
+    SERIAL_PC.println(Z_angle);
     position = mechanum.getPosi(encX_count, encY_count, Z_angle); gPosi = position; //ロボットの自己位置を更新
     velocity = getRobotVelocity(); //ロボットの移動速度を更新
 
     /* 足回りの速度制御または位置制御の処理 */
-    coords conVel = ManuCon.getRefVel(Con.readJoyLXbyte(), Con.readJoyLYbyte(), Con.readJoyRYbyte());
+    // coords conVel = ManuCon.getRefVel(Con.readJoyLXbyte(), Con.readJoyLYbyte(), Con.readJoyRYbyte());
+    coords conVel = ManuCon.getRefVel(Con.readJoy(LX), Con.readJoy(LY), Con.readJoy(RX));
     coords refVel; //最終的な足回りの目標速度
     bool flag_setting = (SETPOSI_X <= setting_num) && (setting_num <= SETPOSI_Z); //位置PIDのゲイン調整をしている場合はtrue
     dummyPosition = getDummyPosition(flag_setting); //位置PID制御のゲイン調整を開始したら仮の原点を得る
@@ -200,12 +203,12 @@ void setup()
     lcd.write_line("   PUSH BUTTON_PS   ", LINE_3);
 
     /* PID制御のゲイン調整のクラスを初期化 */
-    settingVx.init(VEL_X_KP, VEL_X_KI, VEL_X_KD, "velocity.x PID");
-    settingVy.init(VEL_Y_KP, VEL_Y_KI, VEL_Y_KD, "velocity.y PID");
-    settingVz.init(VEL_Z_KP, VEL_Z_KI, VEL_Z_KD, "velocity.z PID");
-    settingPx.init(POSI_X_KP, POSI_X_KI, POSI_X_KD, "position.x PID");
-    settingPy.init(POSI_Y_KP, POSI_Y_KI, POSI_Y_KD, "position.y PID");
-    settingPz.init(POSI_Z_KP, POSI_Z_KI, POSI_Z_KD, "position.z PID");
+    settingVx.init(VEL_X_KP, VEL_X_KI, VEL_X_KD);
+    settingVy.init(VEL_Y_KP, VEL_Y_KI, VEL_Y_KD);
+    settingVz.init(VEL_Z_KP, VEL_Z_KI, VEL_Z_KD);
+    settingPx.init(POSI_X_KP, POSI_X_KI, POSI_X_KD);
+    settingPy.init(POSI_Y_KP, POSI_Y_KI, POSI_Y_KD);
+    settingPz.init(POSI_Z_KP, POSI_Z_KI, POSI_Z_KD);
 
     /* 速度PID制御のクラスの初期化 */
     PIDvelX.PIDinit(velocity.x, velocity.x);
@@ -223,7 +226,7 @@ void setup()
     {
         digitalWrite(PIN_LED_USER, Con.update()); //コントローラの更新と受信確認のLチカ
         /* この間にロボットの位置合わせなどを行う */
-        if((Con.readButton(MASK_BUTTON_PS) == PUSHED) || userSW.button_fall())
+        if((Con.readButton(BUTTON_PS, PUSHED)) || userSW.button_fall())
         {
             if(lpms.init())
             {
@@ -258,7 +261,7 @@ void loop()
 {
     enc_count = enc.getEncCount(); //エンコーダのカウント値を更新（10msでは読み飛ばしが起こった）
     if(flag_10ms)
-    {
+    {    
         digitalWrite(PIN_LED_USER, Con.update()); //コントローラの更新と受信確認のLチカ
         DR.updateUpperCmd(&upper_cmd); //上半身との通信
 
@@ -269,18 +272,19 @@ void loop()
         if(dipsw.getBool(DIP1, ON) && dipsw.getBool(DIP2, OFF))
         {
             /* 展開の処理 */
-            if(Con.readButton(MASK_BUTTON_PAD) == PUSHED) DR.add_upper_cmd(EXPAND);
+            if(Con.readButton(BUTTON_PAD,PUSHED)) DR.add_upper_cmd(EXPAND);
             else DR.sub_upper_cmd(EXPAND);
 
             /* インナーエリアに進入後にテーブル回転機構を所定の位置に移動させる */
-            if(Con.readButton(MASK_BUTTON_Y) == PUSHED) DR.add_upper_cmd(TABLE_POSITION);
+            if(Con.readButton(BUTTON_MARU,PUSHED)) DR.add_upper_cmd(TABLE_POSITION);
 
             /* ハンドル把持の処理 */
-            if(Con.readButton(MASK_BUTTON_A) == PUSHED)
+            if(Con.readButton(BUTTON_SANKAKU,PUSHED))
             {
                 static int hand_count = 0;
                 if((hand_count % 2) == 0) DR.add_upper_cmd(HANDLE);
                 else DR.sub_upper_cmd(HANDLE);
+                hand_count++;
             }
             if(upper_cmd & HOLD_HANDLE)
             {
@@ -292,6 +296,42 @@ void loop()
                 DR.add_upper_cmd(SENDING_TABLE_CMD);
             }
 
+            /* 送信テスト用 */
+            
+            /* ハンドル把持の処理 */
+            if(Con.readButton(BUTTON_UP,PUSHED))
+            {
+                static int table_count = 0;
+                table_count++;
+                switch (table_count)
+                {
+                case 1:
+                    tableAngle = 15.5;
+                    tableOmega = 10.5;
+                    break;
+                case 2:
+                    tableAngle = 30.5;
+                    tableOmega = 20.5;
+                    break;
+                case 3:
+                    tableAngle = -15.5;
+                    tableOmega = -10.5;
+                    break;
+                case 4:
+                    tableAngle = -30.5;
+                    tableOmega = -20.5;
+                    break;
+                case 5:
+                    tableAngle = 0.0;
+                    tableOmega = 0.0;
+                    table_count = 0;
+                    break;
+                default:
+                    break;
+                }
+
+            }
+
             DR.sendUpperCmd(tableAngle, tableOmega);
         }
         /* 上半身と連携し，自動制御の場合 */
@@ -301,10 +341,12 @@ void loop()
         }
 
 
+        
+        pid_gain_setting();
+
         flag_10ms = false;
     }
     
-    pid_gain_setting();
 
     if (flag_500ms)
     {
@@ -350,12 +392,12 @@ void pid_gain_setting()
     if((setting_num == 1) && flag_500ms) lcd.clear_display();
 
     /* エンコーダを用いてPID制御のゲイン調整をする */
-    settingVx.task(flag_500ms, sw_up, sw_down, setting_num);
-    settingVy.task(flag_500ms, sw_up, sw_down, setting_num);
-    settingVz.task(flag_500ms, sw_up, sw_down, setting_num);
-    settingPx.task(flag_500ms, sw_up, sw_down, setting_num);
-    settingPy.task(flag_500ms, sw_up, sw_down, setting_num);
-    settingPz.task(flag_500ms, sw_up, sw_down, setting_num);
+    settingVx.task("velocity.x PID", flag_500ms, sw_up, sw_down, setting_num);
+    settingVy.task("velocity.y PID", flag_500ms, sw_up, sw_down, setting_num);
+    settingVz.task("velocity.z PID", flag_500ms, sw_up, sw_down, setting_num);
+    settingPx.task("position.x PID", flag_500ms, sw_up, sw_down, setting_num);
+    settingPy.task("position.y PID", flag_500ms, sw_up, sw_down, setting_num);
+    settingPz.task("position.z PID", flag_500ms, sw_up, sw_down, setting_num);
 
     /* 値を代入 */
     PIDvelX.setPara(settingVx.getKp(), settingVx.getKi(), settingVx.getKd());
@@ -364,18 +406,6 @@ void pid_gain_setting()
     PIDPosiX.setPara(settingPx.getKp(), settingPx.getKi(), settingPx.getKd());
     PIDPosiY.setPara(settingPy.getKp(), settingPy.getKi(), settingPy.getKd());
     PIDPosiZ.setPara(settingPz.getKp(), settingPz.getKi(), settingPz.getKd());
-
-
-    SERIAL_PC.print(setting_num);
-    SERIAL_PC.print("\t");
-    SERIAL_PC.print(sw_up);
-    SERIAL_PC.print("\t");
-    SERIAL_PC.print(sw_down);
-    SERIAL_PC.print("\t");
-    SERIAL_PC.print(sw_right);
-    SERIAL_PC.print("\t");
-    SERIAL_PC.print(sw_left);
-    SERIAL_PC.print("\");
 
   }
   else

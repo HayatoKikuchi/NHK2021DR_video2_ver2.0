@@ -63,8 +63,8 @@ void Master::updateMasterCmd(unsigned int *state, double *refAngle, double *refO
             *state = (unsigned int)reciveData[0];
 
             double recvAngle, recvOmega;
-            recvAngle = (double)(map(reciveData[1], 0, 255, 0, 600)) / 10.0; //0~127の値を0~600の範囲で再マップし，1/10の位を出現させる
-            recvOmega = (double)(map(reciveData[2], 0, 255, 0, 600)) / 10.0; //0~127の値を0~600の範囲で再マップし，1/10の位を出現させる
+            recvAngle = (double)(mapping(reciveData[1], 0, 255, 0, 600)) / 10.0; //0~127の値を0~600の範囲で再マップし，1/10の位を出現させる
+            recvOmega = (double)(mapping(reciveData[2], 0, 255, 0, 600)) / 10.0; //0~127の値を0~600の範囲で再マップし，1/10の位を出現させる
 
             if(reciveData[0] & TABLE_POSI_NEGATIVE) recvAngle *= -1.0;
             if(reciveData[0] & TABLE_OMEGA_NEGATIVE) recvOmega *= -1.0;
@@ -82,4 +82,10 @@ void Master::updateMasterCmd(unsigned int *state, double *refAngle, double *refO
         }
     }
     
+}
+
+
+int Master::mapping(int value, int fromLow, int fromHigh, int toLow, int toHigh)
+{
+    return value / (fromHigh - fromLow) * (toHigh - toLow);
 }

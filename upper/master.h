@@ -31,9 +31,11 @@ public:
 
     void init_upper_cmd(void);
     void add_upper_cmd(unsigned int addNum);
-    void sub_upper_cmd(usingned int subNum);
+    void sub_upper_cmd(unsigned int subNum);
     void sendMasterCmd();
     void updateMasterCmd(unsigned int *state, double *refAngle, double *refOmega);
+
+    int mapping(int value, int fromLow, int fromHigh, int toLow, int toHigh);
 
 
 private:
