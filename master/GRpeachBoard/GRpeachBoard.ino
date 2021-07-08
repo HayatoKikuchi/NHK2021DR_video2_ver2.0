@@ -117,7 +117,6 @@ void timer_warikomi()
     int encX_count = encX.getCount();
     int encY_count = encY.getCount();
     double Z_angle = lpms.get_z_angle();
-    SERIAL_PC.println(Z_angle);
     position = mechanum.getPosi(encX_count, encY_count, Z_angle); gPosi = position; //ロボットの自己位置を更新
     velocity = getRobotVelocity(); //ロボットの移動速度を更新
 
@@ -329,7 +328,6 @@ void loop()
                 default:
                     break;
                 }
-
             }
 
             DR.sendUpperCmd(tableAngle, tableOmega);
