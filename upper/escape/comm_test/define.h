@@ -14,8 +14,8 @@ struct coords
 /* シリアル通信の定義 */
 #define SERIAL_PC       Serial
 #define SERIAL_ROBOCLAW Serial0
-#define SERIAL_MASTER   Serial6
-#define SERIAL_CON      Serial5
+#define SERIAL_MASTER   Serial5
+#define SERIAL_CON      Serial6
 
 /* 入力ピンの定義 */
 #define PIN_DIP1 29
