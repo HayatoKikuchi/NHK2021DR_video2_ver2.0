@@ -107,13 +107,38 @@ void loop()
 {
     if(flag_10ms)
     {
-        master.sendMasterCmd();
-        master.updateMasterCmd(&masterCMD, &refAngle, &refOmega);
+        // master.sendMasterCmd();
+        // master.updateMasterCmd(&masterCMD, &refAngle, &refOmega);
 
         SERIAL_MASTER.write(22);
         SERIAL_MASTER.write(44);
         SERIAL_MASTER.write(66);
         SERIAL_MASTER.write(END_BYTE);
+        // SERIAL_MASTER.println(2);
+
+        while (SERIAL_MASTER.available())
+        {
+            static int count_loop = 0;
+            int num = SERIAL_MASTER.read();
+            static int buf_num[3];
+
+            if(num == END_BYTE)
+            {
+              if(count_loop == 2)
+              {
+                number[0] = buf_num[0];
+                number[1] = buf_num[1];
+                number[2] = buf_num[2];
+              }
+              
+              count_loop = 0;
+            }
+            else
+            {
+                buf_num[count_loop] = num;
+                count_loop++;
+            }
+        }
     }
 
     if(flag_100ms)
@@ -125,26 +150,6 @@ void loop()
         // SERIAL_PC.print(refOmega);
         // SERIAL_PC.print("\t");
         // SERIAL_PC.println(master.upper_cmd, BIN);
-        while (SERIAL_MASTER.available())
-        {
-            static int count_loop = 0;
-            int num = SERIAL_MASTER.read();
-            static int buf_num[3];
-
-            if(num == END_BYTE)
-            {
-                number[0] = buf_num[0];
-                number[1] = buf_num[1];
-                number[2] = buf_num[2];
-
-                count_loop = 0;
-            }
-            else
-            {
-                buf_num[count_loop] = num;
-                count_loop++;
-            }
-        }
         
         SERIAL_PC.print(number[0]);
         SERIAL_PC.print(number[1]);

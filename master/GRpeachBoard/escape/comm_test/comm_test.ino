@@ -80,13 +80,7 @@ void loop()
         SERIAL_UPPER.write(33);
         SERIAL_UPPER.write(55);
         SERIAL_UPPER.write(END_BYTE);
-    }
 
-    if(flag_100ms)
-    {
-        // SERIAL_PC.print(upperCMD, BIN);
-        // SERIAL_PC.print("\t");
-        // SERIAL_PC.println(DR.upper_cmd, BIN);
         while (SERIAL_UPPER.available())
         {
             static int count_loop = 0;
@@ -95,10 +89,13 @@ void loop()
 
             if(num == END_BYTE)
             {
-                number[0] = buf_num[0];
-                number[1] = buf_num[1];
-                number[2] = buf_num[2];
-
+                if(count_loop == 2)
+                {
+                    number[0] = buf_num[0];
+                    number[1] = buf_num[1];
+                    number[2] = buf_num[2];
+                }
+                
                 count_loop = 0;
             }
             else
@@ -107,6 +104,13 @@ void loop()
                 count_loop++;
             }
         }
+    }
+
+    if(flag_100ms)
+    {
+        // SERIAL_PC.print(upperCMD, BIN);
+        // SERIAL_PC.print("\t");
+        // SERIAL_PC.println(DR.upper_cmd, BIN);
         
         SERIAL_PC.print(number[0]);
         SERIAL_PC.print(number[1]);
