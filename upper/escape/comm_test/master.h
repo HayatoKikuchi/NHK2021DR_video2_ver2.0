@@ -35,8 +35,9 @@ public:
     void sendMasterCmd();
     void updateMasterCmd(unsigned int *state, double *refAngle, double *refOmega);
 
-    int mapping(int value, int fromLow, int fromHigh, int toLow, int toHigh);
+    int mapping(double value, double fromLow, double fromHigh, double toLow, double toHigh);
 
+    unsigned int master_cmd, pre_master_cmd;
 
 private:
     HardwareSerial *master;
@@ -44,8 +45,7 @@ private:
     uint8_t sendData[SENDDATANUM];
     uint8_t reciveData[RECIVEDATANUM];
 
-    uint8_t recv_num[7];
-    unsigned int master_cmd, pre_master_cmd;
+    uint8_t recv_num[RECIVEDATANUM];
 
 };
 

@@ -15,7 +15,7 @@ unsigned int masterCMD;
 double refOmega, refAngle;
 bool flag_10ms = false, flag_100ms = false;
 
-int number[3] = {0, 0, 0};
+uint8_t number[3] = {0, 0, 0};
 
 // LEDをチカチカさせるための関数
 void LEDblink(byte pin, int times, int interval)
@@ -72,6 +72,9 @@ void setup()
     SERIAL_PC.begin(115200);
     SERIAL_MASTER.begin(115200);
 
+    pinMode(PIN_LED_USER, OUTPUT);
+    digitalWrite(PIN_LED_USER, LOW);
+
     LEDblink(PIN_LED_RED, 1 , 100);
     LEDblink(PIN_LED_GREEN, 1 , 100);
     LEDblink(PIN_LED_BLUE, 1 , 100);
@@ -107,9 +110,9 @@ void loop()
 {
     if(flag_10ms)
     {
-        // master.sendMasterCmd();
-        // master.updateMasterCmd(&masterCMD, &refAngle, &refOmega);
-
+        master.sendMasterCmd();
+        master.updateMasterCmd(&masterCMD, &refAngle, &refOmega);
+/*
         SERIAL_MASTER.write(22);
         SERIAL_MASTER.write(44);
         SERIAL_MASTER.write(66);
@@ -118,13 +121,15 @@ void loop()
 
         while (SERIAL_MASTER.available())
         {
+          digitalWrite(PIN_LED_USER, !digitalRead(PIN_LED_USER));
+
             static int count_loop = 0;
-            int num = SERIAL_MASTER.read();
-            static int buf_num[3];
+            uint8_t num = SERIAL_MASTER.read();
+            static uint8_t buf_num[3];
 
             if(num == END_BYTE)
             {
-              if(count_loop == 2)
+              if(count_loop == 3)
               {
                 number[0] = buf_num[0];
                 number[1] = buf_num[1];
@@ -139,20 +144,20 @@ void loop()
                 count_loop++;
             }
         }
+*/
+        flag_10ms = false;
     }
 
     if(flag_100ms)
     {
-        // SERIAL_PC.print(upperCMD, BIN);
-        // SERIAL_PC.print("\t");
-        // SERIAL_PC.print(refAngle);
-        // SERIAL_PC.print("\t");
-        // SERIAL_PC.print(refOmega);
-        // SERIAL_PC.print("\t");
-        // SERIAL_PC.println(master.upper_cmd, BIN);
-        
-        SERIAL_PC.print(number[0]);
-        SERIAL_PC.print(number[1]);
-        SERIAL_PC.println(number[2]);
+        SERIAL_PC.print(masterCMD, BIN);
+        SERIAL_PC.print("\t");
+        SERIAL_PC.print(refAngle);
+        SERIAL_PC.print("\t");
+        SERIAL_PC.print(refOmega);
+        SERIAL_PC.print("\t");
+        SERIAL_PC.println(master.master_cmd, BIN);
+
+        flag_100ms = false;
     }
 }
